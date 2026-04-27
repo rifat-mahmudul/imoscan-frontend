@@ -9,8 +9,16 @@ import {
   Download,
   Package,
   ArrowUpRight,
+  Eye,
+  X,
+  Smartphone,
+  Cpu,
+  Layers,
+  Info,
+  DollarSign,
+  Tag,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
 const stockItems = [
@@ -25,6 +33,11 @@ const stockItems = [
     status: "In Stock",
     condition: "Brand New",
     img: "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?q=80&w=300&auto=format&fit=crop",
+    specs: {
+      screen: "6.8 inch Dynamic AMOLED",
+      battery: "5000mAh",
+      processor: "Snapdragon 8 Gen 3",
+    },
   },
   {
     id: 2,
@@ -37,6 +50,11 @@ const stockItems = [
     status: "In Stock",
     condition: "Like New",
     img: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=300&auto=format&fit=crop",
+    specs: {
+      screen: "6.7 inch LTPO OLED",
+      battery: "5050mAh",
+      processor: "Google Tensor G3",
+    },
   },
   {
     id: 3,
@@ -49,6 +67,11 @@ const stockItems = [
     status: "In Stock",
     condition: "New",
     img: "https://images.unsplash.com/photo-1696446701796-da61225697cc?q=80&w=300&auto=format&fit=crop",
+    specs: {
+      screen: "6.7 inch Super Retina XDR",
+      battery: "4441mAh",
+      processor: "A17 Pro",
+    },
   },
   {
     id: 4,
@@ -61,6 +84,11 @@ const stockItems = [
     status: "Reserved",
     condition: "Fair",
     img: "https://images.unsplash.com/photo-1710313186256-419b161c3186?q=80&w=300&auto=format&fit=crop",
+    specs: {
+      screen: "6.82 inch LTPO AMOLED",
+      battery: "5400mAh",
+      processor: "Snapdragon 8 Gen 3",
+    },
   },
   {
     id: 5,
@@ -73,6 +101,11 @@ const stockItems = [
     status: "In Stock",
     condition: "Brand New",
     img: "https://images.unsplash.com/photo-1544650039-2287f3945927?q=80&w=300&auto=format&fit=crop",
+    specs: {
+      screen: "11.0 inch Liquid Retina",
+      battery: "7538mAh",
+      processor: "Apple M2",
+    },
   },
   {
     id: 6,
@@ -85,6 +118,11 @@ const stockItems = [
     status: "In Stock",
     condition: "Like New",
     img: "https://images.unsplash.com/photo-1678652197831-2d180705cd2c?q=80&w=300&auto=format&fit=crop",
+    specs: {
+      screen: "6.7 inch Super Retina XDR",
+      battery: "4323mAh",
+      processor: "A16 Bionic",
+    },
   },
 ];
 
@@ -96,6 +134,9 @@ const soldItems = [
     expected: "$600",
     qty: 5,
     img: "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?q=80&w=100&auto=format&fit=crop",
+    status: "Sold",
+    condition: "Brand New",
+    model: "Samsung SM-S928B",
   },
   {
     name: "OnePlus 12",
@@ -104,6 +145,9 @@ const soldItems = [
     expected: "$400",
     qty: 2,
     img: "https://images.unsplash.com/photo-1710313186256-419b161c3186?q=80&w=100&auto=format&fit=crop",
+    status: "Sold",
+    condition: "Fair",
+    model: "OnePlus CPH2573",
   },
   {
     name: "iPhone 17",
@@ -112,6 +156,9 @@ const soldItems = [
     expected: "$600",
     qty: 8,
     img: "https://images.unsplash.com/photo-1696446701796-da61225697cc?q=80&w=100&auto=format&fit=crop",
+    status: "Sold",
+    condition: "New",
+    model: "Apple A3106",
   },
   {
     name: "Google Pixel 9",
@@ -120,6 +167,9 @@ const soldItems = [
     expected: "$700",
     qty: 1,
     img: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=100&auto=format&fit=crop",
+    status: "Sold",
+    condition: "Like New",
+    model: "Google G1S60",
   },
   {
     name: "Sony Xperia 1V",
@@ -128,6 +178,9 @@ const soldItems = [
     expected: "$600",
     qty: 12,
     img: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop",
+    status: "Sold",
+    condition: "Used",
+    model: "Sony XQ-CT72",
   },
   {
     name: "iPad 11",
@@ -136,12 +189,40 @@ const soldItems = [
     expected: "$800",
     qty: 5,
     img: "https://images.unsplash.com/photo-1544650039-2287f3945927?q=80&w=100&auto=format&fit=crop",
+    status: "Sold",
+    condition: "Brand New",
+    model: "Space Gray",
   },
 ];
 
+interface InventoryItem {
+  id?: number;
+  name: string;
+  model: string;
+  serial?: string;
+  imei?: string;
+  price?: string;
+  oldPrice?: string;
+  purchase?: string;
+  expected?: string;
+  qty: number;
+  status: string;
+  condition: string;
+  img: string;
+  specs?: {
+    screen: string;
+    battery: string;
+    processor: string;
+  };
+}
+
 export default function Inventory() {
+  const [selectedItem, setSelectedItem] = React.useState<InventoryItem | null>(
+    null,
+  );
+
   return (
-    <div className="p-4 md:p-10 max-w-[1600px] mx-auto space-y-12 font-poppins">
+    <div className="p-4 md:p-10 max-w-[1600px] mx-auto space-y-12 font-poppins relative">
       {/* Inventory Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
@@ -193,9 +274,17 @@ export default function Inventory() {
                       {item.serial}
                     </p>
                   </div>
-                  <button className="p-1 text-gray-400 hover:text-[#0F172A] transition">
-                    <MoreVertical size={18} />
-                  </button>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => setSelectedItem(item)}
+                      className="p-1.5 bg-gray-50 text-gray-400 hover:text-[#84CC16] hover:bg-[#84CC16]/10 rounded-lg transition cursor-pointer"
+                    >
+                      <Eye size={16} strokeWidth={2.5} />
+                    </button>
+                    <button className="p-1.5 text-gray-400 hover:text-[#0F172A] transition cursor-pointer">
+                      <MoreVertical size={16} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -276,7 +365,7 @@ export default function Inventory() {
                     Expected Price
                   </th>
                   <th className="px-8 py-6 text-[10px] font-black text-[#94A3B8] uppercase tracking-[0.2em] text-center">
-                    Quantity
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -311,9 +400,13 @@ export default function Inventory() {
                       {item.expected}
                     </td>
                     <td className="px-8 py-4 text-center">
-                      <span className="text-[13px] font-black text-[#84CC16]">
-                        {item.qty}
-                      </span>
+                      <button
+                        onClick={() => setSelectedItem(item)}
+                        className="px-4 py-2 bg-[#F8FAFC] text-[#64748B] hover:text-[#84CC16] hover:bg-[#84CC16]/10 rounded-xl transition cursor-pointer flex items-center justify-center gap-2 mx-auto font-black text-[10px] uppercase tracking-widest"
+                      >
+                        <Eye size={14} strokeWidth={2.5} />
+                        View
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -322,6 +415,144 @@ export default function Inventory() {
           </div>
         </motion.div>
       </div>
+
+      {/* Details Modal */}
+      <AnimatePresence>
+        {selectedItem && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 md:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedItem(null)}
+              className="absolute inset-0 bg-[#0F172A]/40 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-[40px] shadow-2xl overflow-hidden border border-white flex flex-col md:flex-row"
+            >
+              {/* Product Image Section */}
+              <div className="w-full md:w-[280px] h-[280px] md:h-auto relative bg-gray-50 flex-shrink-0">
+                <Image
+                  src={selectedItem.img}
+                  alt={selectedItem.name}
+                  fill
+                  className="object-cover"
+                />
+                <div className="absolute top-6 left-6 flex flex-col gap-2">
+                  <span className="px-4 py-1.5 rounded-full bg-[#84CC16] text-white text-[10px] font-black tracking-widest uppercase shadow-lg shadow-lime-500/20">
+                    {selectedItem.status}
+                  </span>
+                  <span className="px-4 py-1.5 rounded-full bg-white text-[#0F172A] text-[10px] font-black tracking-widest uppercase shadow-md">
+                    {selectedItem.condition}
+                  </span>
+                </div>
+              </div>
+
+              {/* Product Info Section */}
+              <div className="flex-1 p-8 md:p-10 flex flex-col justify-between overflow-y-auto max-h-[80vh]">
+                <div className="space-y-8">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h2 className="text-2xl font-black text-[#0F172A] tracking-tight leading-tight">
+                        {selectedItem.name}
+                      </h2>
+                      <p className="text-[13px] font-bold text-[#94A3B8] mt-1">
+                        {selectedItem.model}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedItem(null)}
+                      className="p-2.5 hover:bg-gray-100 rounded-xl transition text-[#94A3B8] hover:text-[#0F172A]"
+                    >
+                      <X size={20} strokeWidth={3} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                      <div className="flex items-center gap-2 text-[#94A3B8]">
+                        <Smartphone size={14} />
+                        <span className="text-[10px] font-black uppercase tracking-wider">
+                          Screen
+                        </span>
+                      </div>
+                      <p className="text-[13px] font-black text-[#0F172A]">
+                        {selectedItem.specs?.screen || "6.7-inch OLED"}
+                      </p>
+                    </div>
+                    <div className="space-y-1.5 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                      <div className="flex items-center gap-2 text-[#94A3B8]">
+                        <Cpu size={14} />
+                        <span className="text-[10px] font-black uppercase tracking-wider">
+                          Processor
+                        </span>
+                      </div>
+                      <p className="text-[13px] font-black text-[#0F172A]">
+                        {selectedItem.specs?.processor || "Octa-core Chip"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                      <div className="flex items-center gap-3 text-[#64748B]">
+                        <Layers size={16} />
+                        <span className="text-sm font-bold">Serial Number</span>
+                      </div>
+                      <span className="text-sm font-black text-[#0F172A]">
+                        {selectedItem.serial || selectedItem.imei}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                      <div className="flex items-center gap-3 text-[#64748B]">
+                        <DollarSign size={16} />
+                        <span className="text-sm font-bold">Base Price</span>
+                      </div>
+                      <span className="text-sm font-black text-[#0F172A]">
+                        {selectedItem.oldPrice || selectedItem.purchase}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                      <div className="flex items-center gap-3 text-[#64748B]">
+                        <Tag size={16} />
+                        <span className="text-sm font-bold">Sale Price</span>
+                      </div>
+                      <span className="text-lg font-black text-[#84CC16]">
+                        {selectedItem.price || selectedItem.expected}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex gap-4">
+                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
+                      <Info size={16} />
+                    </div>
+                    <p className="text-[12px] font-bold text-blue-900/60 leading-relaxed">
+                      This device has passed all automated quality checks and is
+                      verified for authenticity.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-10 flex gap-3">
+                  <button className="flex-1 py-4 bg-[#0F172A] text-white font-black text-[13px] rounded-2xl hover:bg-gray-800 transition shadow-xl active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest">
+                    Edit Details
+                  </button>
+                  <button
+                    onClick={() => setSelectedItem(null)}
+                    className="flex-1 py-4 bg-gray-100 text-[#64748B] font-black text-[13px] rounded-2xl hover:bg-gray-200 transition active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

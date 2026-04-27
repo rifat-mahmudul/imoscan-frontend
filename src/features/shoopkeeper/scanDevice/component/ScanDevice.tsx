@@ -21,10 +21,18 @@ import {
   History,
   BadgeCheck,
   Wallet,
+  ChevronDown,
 } from "lucide-react";
-import { useState, useRef } from "react";
-import { checkIMEIApi } from "../../scanDevice/api/scanDevice.api";
-import { IMEIResult } from "../../scanDevice/types/scanDevice.types";
+import { useSearchParams } from "next/navigation";
+import { useState, useRef, useEffect } from "react";
+import {
+  checkIMEIApi,
+  getServicesApi,
+} from "../../scanDevice/api/scanDevice.api";
+import {
+  IMEIResult,
+  IMEIService,
+} from "../../scanDevice/types/scanDevice.types";
 import { CertificatePDF } from "./CertificatePDF";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
@@ -36,7 +44,57 @@ export default function ScanDevice() {
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [services, setServices] = useState<IMEIService[]>([]);
+  const [selectedServiceId, setSelectedServiceId] = useState<string>("6");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const certificateRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const response = await getServicesApi();
+        if (
+          response.success &&
+          response.data &&
+          response.data["Service List"]
+        ) {
+          setServices(response.data["Service List"]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch services:", err);
+      }
+    };
+    fetchServices();
+  }, []);
+
+  useEffect(() => {
+    const queryImei = searchParams.get("imei");
+    const queryServiceId = searchParams.get("serviceId");
+
+    if (queryImei) {
+      setImei(queryImei);
+    }
+    if (queryServiceId) {
+      setSelectedServiceId(queryServiceId);
+    }
+  }, [searchParams]);
+
+  // A separate effect to trigger scan once imei is set from query
+  useEffect(() => {
+    const queryImei = searchParams.get("imei");
+    const queryServiceId = searchParams.get("serviceId") || "6";
+
+    if (
+      queryImei &&
+      imei === queryImei &&
+      selectedServiceId === queryServiceId &&
+      !isScanning &&
+      !scanResult
+    ) {
+      handleScan();
+    }
+  }, [imei, selectedServiceId, searchParams]);
 
   const steps = [
     { id: 1, label: "Fetching Data", progress: 100 },
@@ -56,7 +114,7 @@ export default function ScanDevice() {
       setTimeout(() => setCurrentStep(2), 1500);
       setTimeout(() => setCurrentStep(3), 3000);
 
-      const response = await checkIMEIApi(imei);
+      const response = await checkIMEIApi(imei, parseInt(selectedServiceId));
 
       if (response.success && response.data) {
         // Wait for animations to finish before showing results
@@ -466,8 +524,83 @@ export default function ScanDevice() {
         className="w-full bg-white rounded-[40px] p-6 md:p-12 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.05)] border border-gray-100"
       >
         <div className="space-y-8">
+          {/* Service Selection Section */}
+          <div className="relative">
+            <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block ml-4">
+              Select Diagnostic Service
+            </span>
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              disabled={isScanning}
+              className="w-full flex items-center justify-between px-8 py-5 rounded-3xl border border-gray-100 bg-[#FBFBFB] hover:bg-white hover:border-[#84CC16]/30 transition-all cursor-pointer group disabled:opacity-50"
+            >
+              <div className="flex flex-col items-start">
+                <span className="text-lg font-black text-[#0F172A] group-hover:text-[#84CC16] transition-colors">
+                  {services.find((s) => s.service === selectedServiceId)
+                    ?.name || "Select Service"}
+                </span>
+                <span className="text-[12px] font-bold text-[#84CC16]">
+                  Price: $
+                  {services.find((s) => s.service === selectedServiceId)
+                    ?.price || "0.00"}
+                </span>
+              </div>
+              <ChevronDown
+                size={24}
+                className={`text-gray-400 transition-transform duration-300 ${isDropdownOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            <AnimatePresence>
+              {isDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute left-0 right-0 mt-4 bg-white rounded-[32px] shadow-2xl border border-gray-100 overflow-hidden z-[100] max-h-[400px] overflow-y-auto custom-scrollbar p-3"
+                >
+                  {services.map((svc) => (
+                    <button
+                      key={svc.service}
+                      onClick={() => {
+                        setSelectedServiceId(svc.service);
+                        setIsDropdownOpen(false);
+                      }}
+                      className={`w-full flex flex-col items-start p-4 rounded-2xl transition-all mb-1 ${
+                        selectedServiceId === svc.service
+                          ? "bg-[#84CC16]/10 border-2 border-[#84CC16]/20"
+                          : "hover:bg-gray-50 border-2 border-transparent"
+                      }`}
+                    >
+                      <span
+                        className={`text-[15px] font-black text-left ${
+                          selectedServiceId === svc.service
+                            ? "text-[#84CC16]"
+                            : "text-[#0F172A]"
+                        }`}
+                      >
+                        {svc.name}
+                      </span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                          Price:
+                        </span>
+                        <span className="text-[12px] font-black text-[#84CC16]">
+                          ${svc.price}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           {/* Input Section */}
           <div className="relative group">
+            <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block ml-4">
+              Device Identifier
+            </span>
             <input
               type="text"
               placeholder="Enter IMEI / Serial Number"
@@ -476,7 +609,7 @@ export default function ScanDevice() {
               disabled={isScanning}
               className="w-full px-8 py-6 rounded-full border border-gray-100 bg-[#FBFBFB] focus:border-[#84CC16] focus:bg-white focus:ring-4 focus:ring-[#84CC16]/5 outline-none transition-all text-lg font-semibold text-[#0F172A] placeholder:text-gray-400 disabled:opacity-50"
             />
-            <div className="absolute right-6 top-1/2 -translate-y-1/2 p-2 text-gray-400">
+            <div className="absolute right-6 top-[70%] -translate-y-1/2 p-2 text-gray-400">
               <QrCode size={24} />
             </div>
           </div>
@@ -485,7 +618,7 @@ export default function ScanDevice() {
           <button
             onClick={handleScan}
             disabled={isScanning || !imei}
-            className="w-full bg-[#84CC16] hover:bg-[#76b813] text-white font-black py-6 rounded-full shadow-lg shadow-lime-500/20 transition-all text-xl active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3 cursor-pointer"
+            className="w-full bg-[#84CC16] hover:bg-[#76b813] text-white font-black py-4 rounded-full shadow-lg shadow-lime-500/20 transition-all text-xl active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3 cursor-pointer"
           >
             {isScanning ? (
               <>

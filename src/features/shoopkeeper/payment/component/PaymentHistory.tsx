@@ -9,8 +9,15 @@ import {
   MoreHorizontal,
   Search,
   Filter,
+  X,
+  CreditCard,
+  Calendar,
+  Hash,
+  CheckCircle,
+  Clock,
+  AlertCircle,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 const paymentData = [
   {
@@ -19,6 +26,8 @@ const paymentData = [
     status: "PAID",
     created: "Nov 05, 2023",
     order: "App Development",
+    method: "Mastercard •••• 4242",
+    description: "Full development service for mobile application",
   },
   {
     id: "#INV-8842",
@@ -26,6 +35,8 @@ const paymentData = [
     status: "PAID",
     created: "Oct 12, 2023",
     order: "IMEI Check Credits",
+    method: "Visa •••• 5555",
+    description: "Bulk purchase of 500 IMEI check credits",
   },
   {
     id: "#INV-8843",
@@ -33,6 +44,8 @@ const paymentData = [
     status: "PENDING",
     created: "Oct 15, 2023",
     order: "Device Repair Services",
+    method: "Bank Transfer",
+    description: "Motherboard replacement and screen repair",
   },
   {
     id: "#INV-8844",
@@ -40,6 +53,8 @@ const paymentData = [
     status: "PAID",
     created: "Oct 10, 2023",
     order: "Software License Renewal",
+    method: "PayPal",
+    description: "Annual subscription renewal for diagnostic tool",
   },
   {
     id: "#INV-8845",
@@ -47,6 +62,8 @@ const paymentData = [
     status: "OVERDUE",
     created: "Sep 30, 2023",
     order: "Annual Maintenance Fee",
+    method: "American Express",
+    description: "System maintenance and security updates",
   },
   {
     id: "#INV-8846",
@@ -54,6 +71,8 @@ const paymentData = [
     status: "PAID",
     created: "Oct 18, 2023",
     order: "Cloud Storage Subscription",
+    method: "Visa •••• 1234",
+    description: "Monthly cloud backup and storage fee",
   },
   {
     id: "#INV-8847",
@@ -61,6 +80,8 @@ const paymentData = [
     status: "PENDING",
     created: "Oct 20, 2023",
     order: "Consultation Services",
+    method: "Bank Transfer",
+    description: "Technical architecture consultation",
   },
   {
     id: "#INV-8848",
@@ -68,6 +89,8 @@ const paymentData = [
     status: "PAID",
     created: "Oct 14, 2023",
     order: "Website Hosting",
+    method: "Mastercard •••• 8888",
+    description: "Premium dedicated hosting service",
   },
   {
     id: "#INV-8849",
@@ -75,6 +98,8 @@ const paymentData = [
     status: "OVERDUE",
     created: "Sep 29, 2023",
     order: "Product Development",
+    method: "Visa •••• 9999",
+    description: "New feature implementation and testing",
   },
   {
     id: "#INV-8850",
@@ -82,12 +107,18 @@ const paymentData = [
     status: "PAID",
     created: "Oct 21, 2023",
     order: "IT Support Services",
+    method: "PayPal",
+    description: "Emergency technical support session",
   },
 ];
 
 export default function PaymentHistory() {
+  const [selectedPayment, setSelectedPayment] = React.useState<
+    (typeof paymentData)[0] | null
+  >(null);
+
   return (
-    <div className="p-4 md:p-10 max-w-[1600px] mx-auto space-y-8 font-poppins">
+    <div className="p-4 md:p-10 max-w-[1600px] mx-auto space-y-8 font-poppins relative">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -190,11 +221,14 @@ export default function PaymentHistory() {
                   </td>
                   <td className="px-8 py-5">
                     <div className="flex items-center justify-center gap-3">
-                      <button className="px-5 py-2.5 bg-[#84CC16] text-white text-[11px] font-black rounded-xl hover:bg-[#76b813] hover:scale-105 transition-all shadow-lg shadow-lime-500/20 active:scale-95 flex items-center gap-2 uppercase tracking-widest">
+                      <button
+                        onClick={() => setSelectedPayment(row)}
+                        className="px-5 py-2.5 bg-[#84CC16] text-white text-[11px] font-black rounded-xl hover:bg-[#76b813] hover:scale-105 transition-all shadow-lg shadow-lime-500/20 active:scale-95 flex items-center gap-2 uppercase tracking-widest cursor-pointer"
+                      >
                         <Eye size={14} strokeWidth={3} />
                         View
                       </button>
-                      <button className="px-5 py-2.5 bg-white border-2 border-gray-100 text-[#64748B] text-[11px] font-black rounded-xl hover:border-[#84CC16] hover:text-[#84CC16] hover:bg-[#84CC16]/5 transition-all active:scale-95 flex items-center gap-2 uppercase tracking-widest">
+                      <button className="px-5 py-2.5 bg-white border-2 border-gray-100 text-[#64748B] text-[11px] font-black rounded-xl hover:border-[#84CC16] hover:text-[#84CC16] hover:bg-[#84CC16]/5 transition-all active:scale-95 flex items-center gap-2 uppercase tracking-widest cursor-pointer">
                         <Download size={14} strokeWidth={3} />
                         Download PDF
                       </button>
@@ -239,6 +273,149 @@ export default function PaymentHistory() {
           </div>
         </div>
       </motion.div>
+
+      {/* Details Modal */}
+      <AnimatePresence>
+        {selectedPayment && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 md:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedPayment(null)}
+              className="absolute inset-0 bg-[#0F172A]/40 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-xl bg-white rounded-[40px] shadow-2xl overflow-hidden border border-white"
+            >
+              {/* Modal Header */}
+              <div className="p-8 pb-0 flex justify-between items-start">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-[#84CC16]/10 rounded-2xl flex items-center justify-center text-[#84CC16]">
+                    <CreditCard size={24} strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-[#0F172A] tracking-tight">
+                      Transaction Details
+                    </h2>
+                    <p className="text-[13px] font-bold text-[#64748B]">
+                      View full breakdown of your invoice
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedPayment(null)}
+                  className="p-2.5 hover:bg-gray-100 rounded-xl transition text-[#94A3B8] hover:text-[#0F172A]"
+                >
+                  <X size={20} strokeWidth={3} />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-8 space-y-8">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-1.5 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div className="flex items-center gap-2 text-[#94A3B8]">
+                      <Hash size={14} />
+                      <span className="text-[11px] font-black uppercase tracking-wider">
+                        Transaction ID
+                      </span>
+                    </div>
+                    <p className="text-[15px] font-black text-[#0F172A]">
+                      {selectedPayment.id}
+                    </p>
+                  </div>
+                  <div className="space-y-1.5 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div className="flex items-center gap-2 text-[#94A3B8]">
+                      <Calendar size={14} />
+                      <span className="text-[11px] font-black uppercase tracking-wider">
+                        Date Created
+                      </span>
+                    </div>
+                    <p className="text-[15px] font-black text-[#0F172A]">
+                      {selectedPayment.created}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-[11px] font-black text-[#94A3B8] uppercase tracking-[0.15em] px-1">
+                    Payment Information
+                  </h3>
+                  <div className="divide-y divide-gray-100 border-y border-gray-100">
+                    <div className="py-4 flex justify-between items-center">
+                      <span className="text-sm font-bold text-[#64748B]">
+                        Total Amount
+                      </span>
+                      <span className="text-lg font-black text-[#0F172A]">
+                        {selectedPayment.amount}
+                      </span>
+                    </div>
+                    <div className="py-4 flex justify-between items-center">
+                      <span className="text-sm font-bold text-[#64748B]">
+                        Status
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {selectedPayment.status === "PAID" ? (
+                          <CheckCircle size={14} className="text-[#84CC16]" />
+                        ) : selectedPayment.status === "PENDING" ? (
+                          <Clock size={14} className="text-yellow-500" />
+                        ) : (
+                          <AlertCircle size={14} className="text-red-500" />
+                        )}
+                        <span
+                          className={`text-sm font-black ${selectedPayment.status === "PAID" ? "text-[#84CC16]" : selectedPayment.status === "PENDING" ? "text-yellow-600" : "text-red-600"}`}
+                        >
+                          {selectedPayment.status}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="py-4 flex justify-between items-center">
+                      <span className="text-sm font-bold text-[#64748B]">
+                        Payment Method
+                      </span>
+                      <span className="text-sm font-black text-[#0F172A]">
+                        {selectedPayment.method}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="text-[11px] font-black text-[#94A3B8] uppercase tracking-[0.15em] px-1">
+                    Order Details
+                  </h3>
+                  <div className="p-5 bg-[#F8FAFC] rounded-3xl border border-gray-100 space-y-2">
+                    <p className="text-sm font-black text-[#0F172A]">
+                      {selectedPayment.order}
+                    </p>
+                    <p className="text-sm font-medium text-[#64748B] leading-relaxed italic">
+                      {selectedPayment.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-8 pt-0 flex gap-3">
+                <button className="flex-1 py-4 bg-[#84CC16] text-white font-black text-[13px] rounded-2xl hover:bg-[#76b813] transition shadow-lg shadow-lime-500/20 active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest">
+                  <Download size={16} strokeWidth={3} />
+                  Download Invoice
+                </button>
+                <button
+                  onClick={() => setSelectedPayment(null)}
+                  className="px-8 py-4 bg-gray-100 text-[#64748B] font-black text-[13px] rounded-2xl hover:bg-gray-200 transition active:scale-95 uppercase tracking-widest"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

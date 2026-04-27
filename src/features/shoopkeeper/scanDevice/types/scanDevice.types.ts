@@ -74,3 +74,13 @@ export interface IMEIResult {
   };
   providerData: unknown;
 }
+
+export interface IMEIService {
+  service: string;
+  name: string;
+  price: string;
+}
+
+export interface ServiceListResponse {
+  "Service List": IMEIService[];
+}

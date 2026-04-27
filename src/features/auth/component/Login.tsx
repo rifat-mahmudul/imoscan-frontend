@@ -34,7 +34,7 @@ export default function Login() {
       if (result?.error) {
         setError(result.error);
       } else {
-        router.push("/shpokeeper/dashboard");
+        router.push("/shpokeeper/scan-device");
       }
     } catch (err) {
       setError("Something went wrong. Please try again.");

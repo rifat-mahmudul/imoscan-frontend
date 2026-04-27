@@ -19,6 +19,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import { signOut } from "next-auth/react";
 
 const navItems = [
   {
@@ -65,9 +66,16 @@ export default function Sidebar() {
   const [openSubmenu, setOpenSubmenu] = useState<string | null>("Payment"); // Default open as in screenshot
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const handleLogout = () => {
-    // Perform any logout logic here (e.g., clearing tokens)
-    router.push("/auth/login");
+  const handleLogout = async () => {
+    // Clear all storage to ensure no sensitive data remains
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // Perform next-auth sign out
+    await signOut({
+      callbackUrl: "/auth/login",
+      redirect: true,
+    });
   };
 
   return (
