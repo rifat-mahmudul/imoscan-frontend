@@ -1,6 +1,10 @@
 import OtpVerify from "@/features/auth/component/OtpVerify";
-import React from "react";
+import React, { Suspense } from "react";
 
 export default function page() {
-  return <OtpVerify />;
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <OtpVerify />
+    </Suspense>
+  );
 }
