@@ -1,6 +1,6 @@
 import Banner from "@/features/Home/component/Banner";
-import Navbar from "@/components/sheard/website/Navbar";
-import Footer from "@/components/sheard/website/Footer";
+import Navbar from "@/components/shared/website/Navbar";
+import Footer from "@/components/shared/website/Footer";
 import VerifyAnyDevices from "@/features/Home/component/VerifyAnyDevices";
 import ImportantWarning from "@/features/Home/component/ImportantWarning";
 import ExperienceSmarter from "@/features/Home/component/ExperienceSmarter";
@@ -13,15 +13,15 @@ import StartChecking from "@/features/Home/component/StartChecking";
 export default function Home() {
   return (
     <main className="">
-      <div className="min-h-screen flex flex-col pt-20 sm:pt-24">
+      <div className="pt-20 md:pt-[100px]">
         <Navbar />
         <Banner />
       </div>
       <VerifyAnyDevices />
-      <ExperienceSmarter />
       <ImportantWarning />
-      <ForTheSmartBuyer />
+      <ExperienceSmarter />
       <AIPoweredInsights />
+      <ForTheSmartBuyer />
       <Pricing />
       <Review />
       <StartChecking />
