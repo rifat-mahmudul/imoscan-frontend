@@ -15,7 +15,7 @@ export default function ShopkeeperLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
+    <div className="flex min-h-screen bg-surface">
       {/* Sidebar */}
       <Sidebar />
 
