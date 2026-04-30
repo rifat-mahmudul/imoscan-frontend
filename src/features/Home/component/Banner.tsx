@@ -13,8 +13,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { getServicesApi } from "@/features/shoopkeeper/scanDevice/api/scanDevice.api";
-import { IMEIService } from "@/features/shoopkeeper/scanDevice/types/scanDevice.types";
+import { getServicesApi } from "@/features/shopkeeper/scanDevice/api/scanDevice.api";
+import { IMEIService } from "@/features/shopkeeper/scanDevice/types/scanDevice.types";
 
 export default function Banner() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -65,7 +65,7 @@ export default function Banner() {
     if (status === "authenticated") {
       const serviceId = selectedService?.service || "6";
       router.push(
-        `/shpokeeper/scan-device?imei=${encodeURIComponent(imei)}&serviceId=${serviceId}`,
+        `/shopkeeper/scan-device?imei=${encodeURIComponent(imei)}&serviceId=${serviceId}`,
       );
     } else {
       setShowLoginModal(true);
