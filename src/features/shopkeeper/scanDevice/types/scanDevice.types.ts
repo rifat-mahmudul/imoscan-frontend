@@ -76,11 +76,26 @@ export interface IMEIResult {
 }
 
 export interface IMEIService {
-  service: string;
+  _id: string;
+  serviceId: number | null;
   name: string;
   price: string;
+  priceLabel: string;
+  category: string;
+  isFree: boolean;
+  normalizedName: string;
+  currency: string;
+}
+
+export interface ServiceCategory {
+  category: string;
+  services: IMEIService[];
 }
 
 export interface ServiceListResponse {
-  "Service List": IMEIService[];
+  data: ServiceCategory[];
+  meta: {
+    totalServices: number;
+    totalCategories: number;
+  };
 }

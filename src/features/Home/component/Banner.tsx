@@ -14,13 +14,19 @@ import { useRef, useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { getServicesApi } from "@/features/shopkeeper/scanDevice/api/scanDevice.api";
-import { IMEIService } from "@/features/shopkeeper/scanDevice/types/scanDevice.types";
+import {
+  IMEIService,
+  ServiceCategory,
+} from "@/features/shopkeeper/scanDevice/types/scanDevice.types";
 
 export default function Banner() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imei, setImei] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>(
+    [],
+  );
   const [services, setServices] = useState<IMEIService[]>([]);
   const [selectedService, setSelectedService] = useState<IMEIService | null>(
     null,
@@ -33,15 +39,15 @@ export default function Banner() {
     const fetchServices = async () => {
       try {
         const response = await getServicesApi();
-        if (
-          response.success &&
-          response.data &&
-          response.data["Service List"]
-        ) {
-          const list = response.data["Service List"];
-          setServices(list);
-          if (list.length > 0) {
-            setSelectedService(list.find((s) => s.service === "6") || list[0]);
+        if (response.success && response.data) {
+          setServiceCategories(response.data);
+          // Flatten for initial selection or fallback
+          const allServices = response.data.flatMap((cat) => cat.services);
+          setServices(allServices);
+          if (allServices.length > 0) {
+            setSelectedService(
+              allServices.find((s) => s.serviceId === 6) || allServices[0],
+            );
           }
         }
       } catch (err) {
@@ -51,9 +57,14 @@ export default function Banner() {
     fetchServices();
   }, []);
 
-  const filteredServices = services.filter((svc) =>
-    svc.name.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const filteredCategories = serviceCategories
+    .map((cat) => ({
+      ...cat,
+      services: cat.services.filter((svc) =>
+        svc.name.toLowerCase().includes(searchTerm.toLowerCase()),
+      ),
+    }))
+    .filter((cat) => cat.services.length > 0);
 
   const handleScanClick = () => {
     fileInputRef.current?.click();
@@ -63,7 +74,7 @@ export default function Banner() {
     if (!imei) return;
 
     if (status === "authenticated") {
-      const serviceId = selectedService?.service || "6";
+      const serviceId = selectedService?.serviceId || 6;
       router.push(
         `/shopkeeper/scan-device?imei=${encodeURIComponent(imei)}&serviceId=${serviceId}`,
       );
@@ -170,7 +181,7 @@ export default function Banner() {
                 className="flex h-[52px] cursor-pointer items-center justify-center gap-2 rounded-full bg-primary/80 px-8 text-primary-foreground shadow-[0_2px_4px_rgba(136,144,194,0.2),0_5px_15px_rgba(37,44,97,0.15)] transition-all hover:bg-primary max-md:w-full"
               >
                 <span className="whitespace-nowrap text-base font-extrabold leading-none">
-                  Choose Service
+                  {selectedService ? selectedService.name : "Choose Service"}
                 </span>
                 <ChevronDown
                   className={`h-5 w-5 transition-transform duration-300 ${isDropdownOpen ? "rotate-180" : ""}`}
@@ -202,82 +213,100 @@ export default function Banner() {
                     </div>
 
                     <div className="max-h-[450px] overflow-y-auto custom-scrollbar p-3">
-                      {filteredServices.length > 0 ? (
-                        filteredServices.map((svc) => {
-                          const isApple =
-                            svc.name.toLowerCase().includes("apple") ||
-                            svc.name.toLowerCase().includes("iphone");
-                          const isSamsung = svc.name
-                            .toLowerCase()
-                            .includes("samsung");
+                      {filteredCategories.length > 0 ? (
+                        filteredCategories.map((cat) => (
+                          <div key={cat.category} className="mb-6 last:mb-2">
+                            <h3 className="px-4 mb-2 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 flex items-center gap-2">
+                              <div className="h-px flex-1 bg-border/50" />
+                              {cat.category}
+                              <div className="h-px flex-1 bg-border/50" />
+                            </h3>
+                            <div className="space-y-1">
+                              {cat.services.map((svc) => {
+                                const isApple =
+                                  cat.category
+                                    .toLowerCase()
+                                    .includes("apple") ||
+                                  svc.name.toLowerCase().includes("apple") ||
+                                  svc.name.toLowerCase().includes("iphone");
+                                const isSamsung =
+                                  cat.category
+                                    .toLowerCase()
+                                    .includes("samsung") ||
+                                  svc.name.toLowerCase().includes("samsung");
+                                const isSelected =
+                                  selectedService?._id === svc._id;
 
-                          return (
-                            <button
-                              key={svc.service}
-                              onClick={() => {
-                                setSelectedService(svc);
-                                setIsDropdownOpen(false);
-                                setSearchTerm("");
-                              }}
-                              className={`w-full flex items-center gap-4 p-4 rounded-[20px] transition-all mb-1.5 group ${
-                                selectedService?.service === svc.service
-                                  ? "bg-primary text-primary-foreground shadow-lg shadow-lime-500/30"
-                                  : "hover:bg-muted border border-transparent hover:border-border"
-                              }`}
-                            >
-                              <div
-                                className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                                  selectedService?.service === svc.service
-                                    ? "bg-white/20"
-                                    : isApple
-                                      ? "bg-muted text-muted-foreground"
-                                      : isSamsung
-                                        ? "bg-blue-500/10 text-blue-500"
-                                        : "bg-green-500/10 text-green-500"
-                                }`}
-                              >
-                                <Info size={22} />
-                              </div>
-                              <div className="flex flex-col items-start flex-1 min-w-0">
-                                <span
-                                  className={`text-[14px] font-black truncate w-full text-left ${
-                                    selectedService?.service === svc.service
-                                      ? "text-white"
-                                      : "text-foreground"
-                                  }`}
-                                >
-                                  {svc.name}
-                                </span>
-                                <div className="flex items-center gap-3 mt-1">
-                                  <span
-                                    className={`text-[10px] font-bold uppercase tracking-widest ${
-                                      selectedService?.service === svc.service
-                                        ? "text-white/70"
-                                        : "text-muted-foreground"
+                                return (
+                                  <button
+                                    key={svc._id}
+                                    onClick={() => {
+                                      setSelectedService(svc);
+                                      setIsDropdownOpen(false);
+                                      setSearchTerm("");
+                                    }}
+                                    className={`w-full flex items-center gap-4 p-4 rounded-[20px] transition-all group ${
+                                      isSelected
+                                        ? "bg-primary text-primary-foreground shadow-lg shadow-lime-500/30"
+                                        : "hover:bg-muted border border-transparent hover:border-border"
                                     }`}
                                   >
-                                    Service ID: {svc.service}
-                                  </span>
-                                  <div className="w-1 h-1 rounded-full bg-current opacity-30" />
-                                  <span
-                                    className={`text-[12px] font-black ${
-                                      selectedService?.service === svc.service
-                                        ? "text-white"
-                                        : "text-primary"
-                                    }`}
-                                  >
-                                    ${svc.price}
-                                  </span>
-                                </div>
-                              </div>
-                              {selectedService?.service === svc.service && (
-                                <motion.div layoutId="selected-check">
-                                  <Check size={20} strokeWidth={4} />
-                                </motion.div>
-                              )}
-                            </button>
-                          );
-                        })
+                                    <div
+                                      className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                                        isSelected
+                                          ? "bg-white/20"
+                                          : isApple
+                                            ? "bg-muted text-muted-foreground"
+                                            : isSamsung
+                                              ? "bg-blue-500/10 text-blue-500"
+                                              : "bg-green-500/10 text-green-500"
+                                      }`}
+                                    >
+                                      <Info size={22} />
+                                    </div>
+                                    <div className="flex flex-col items-start flex-1 min-w-0">
+                                      <span
+                                        className={`text-[14px] font-black truncate w-full text-left ${
+                                          isSelected
+                                            ? "text-white"
+                                            : "text-foreground"
+                                        }`}
+                                      >
+                                        {svc.name}
+                                      </span>
+                                      <div className="flex items-center gap-3 mt-1">
+                                        <span
+                                          className={`text-[10px] font-bold uppercase tracking-widest ${
+                                            isSelected
+                                              ? "text-white/70"
+                                              : "text-muted-foreground"
+                                          }`}
+                                        >
+                                          ID: {svc.serviceId || "N/A"}
+                                        </span>
+                                        <div className="w-1 h-1 rounded-full bg-current opacity-30" />
+                                        <span
+                                          className={`text-[12px] font-black ${
+                                            isSelected
+                                              ? "text-white"
+                                              : "text-primary"
+                                          }`}
+                                        >
+                                          {svc.priceLabel}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    {isSelected && (
+                                      <motion.div layoutId="selected-check">
+                                        <Check size={20} strokeWidth={4} />
+                                      </motion.div>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))
                       ) : (
                         <div className="p-10 text-center space-y-3">
                           <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto text-muted-foreground/60">
@@ -292,7 +321,7 @@ export default function Banner() {
 
                     <div className="p-4 bg-muted border-t border-border flex items-center justify-between">
                       <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
-                        {filteredServices.length} Services available
+                        {services.length} Services available
                       </span>
                       <button className="text-[11px] font-black text-primary uppercase tracking-widest hover:underline">
                         View All

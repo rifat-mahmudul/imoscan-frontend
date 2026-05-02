@@ -32,6 +32,7 @@ import {
 import {
   IMEIResult,
   IMEIService,
+  ServiceCategory,
 } from "../../scanDevice/types/scanDevice.types";
 import { CertificatePDF } from "./CertificatePDF";
 import html2canvas from "html2canvas";
@@ -44,8 +45,13 @@ export default function ScanDevice() {
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>(
+    [],
+  );
   const [services, setServices] = useState<IMEIService[]>([]);
-  const [selectedServiceId, setSelectedServiceId] = useState<string>("6");
+  const [selectedService, setSelectedService] = useState<IMEIService | null>(
+    null,
+  );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const certificateRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
@@ -54,12 +60,23 @@ export default function ScanDevice() {
     const fetchServices = async () => {
       try {
         const response = await getServicesApi();
-        if (
-          response.success &&
-          response.data &&
-          response.data["Service List"]
-        ) {
-          setServices(response.data["Service List"]);
+        if (response.success && response.data) {
+          setServiceCategories(response.data);
+          const allServices = response.data.flatMap((cat) => cat.services);
+          setServices(allServices);
+
+          // Initial selection based on query or default
+          const queryServiceId = searchParams.get("serviceId");
+          if (queryServiceId) {
+            const found = allServices.find(
+              (s) => s.serviceId === parseInt(queryServiceId),
+            );
+            if (found) setSelectedService(found);
+          } else {
+            const found =
+              allServices.find((s) => s.serviceId === 6) || allServices[0];
+            if (found) setSelectedService(found);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch services:", err);
@@ -75,10 +92,13 @@ export default function ScanDevice() {
     if (queryImei) {
       setImei(queryImei);
     }
-    if (queryServiceId) {
-      setSelectedServiceId(queryServiceId);
+    if (queryServiceId && services.length > 0) {
+      const found = services.find(
+        (s) => s.serviceId === parseInt(queryServiceId),
+      );
+      if (found) setSelectedService(found);
     }
-  }, [searchParams]);
+  }, [searchParams, services]);
 
   // A separate effect to trigger scan once imei is set from query
   useEffect(() => {
@@ -88,13 +108,13 @@ export default function ScanDevice() {
     if (
       queryImei &&
       imei === queryImei &&
-      selectedServiceId === queryServiceId &&
+      selectedService?.serviceId === parseInt(queryServiceId) &&
       !isScanning &&
       !scanResult
     ) {
       handleScan();
     }
-  }, [imei, selectedServiceId, searchParams]);
+  }, [imei, selectedService, searchParams]);
 
   const steps = [
     { id: 1, label: "Fetching Data", progress: 100 },
@@ -103,7 +123,7 @@ export default function ScanDevice() {
   ];
 
   const handleScan = async () => {
-    if (!imei) return;
+    if (!imei || !selectedService) return;
     setIsScanning(true);
     setScanResult(null);
     setError(null);
@@ -114,7 +134,7 @@ export default function ScanDevice() {
       setTimeout(() => setCurrentStep(2), 1500);
       setTimeout(() => setCurrentStep(3), 3000);
 
-      const response = await checkIMEIApi(imei, parseInt(selectedServiceId));
+      const response = await checkIMEIApi(imei, selectedService.serviceId || 6);
 
       if (response.success && response.data) {
         // Wait for animations to finish before showing results
@@ -157,10 +177,6 @@ export default function ScanDevice() {
         );
       }
 
-      // FINAL REMEDY for oklch error:
-      // html2canvas parses all stylesheets in the document. Tailwind v4's oklch colors crash it.
-      // We temporarily disable all stylesheets on the main document just for the capture.
-      // Since our CertificatePDF uses 100% inline HEX styles, it will still render perfectly.
       const styleSheets = Array.from(
         document.querySelectorAll("style, link[rel='stylesheet']"),
       ) as (HTMLStyleElement | HTMLLinkElement)[];
@@ -194,7 +210,6 @@ export default function ScanDevice() {
           },
         });
       } finally {
-        // RESTORE stylesheets immediately
         console.log("Restoring stylesheets...");
         styleSheets.forEach((s, i) => (s.media = originalMedias[i]));
       }
@@ -317,7 +332,6 @@ export default function ScanDevice() {
 
         {/* Middle Section: Check Cards & Report Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Check Cards Grid */}
           <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
             {(
               Object.values(scanResult.checks) as Array<{
@@ -368,7 +382,6 @@ export default function ScanDevice() {
             ))}
           </div>
 
-          {/* Report Actions Card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -399,7 +412,6 @@ export default function ScanDevice() {
           </motion.div>
         </div>
 
-        {/* Bottom Section: Technical Breakdown */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -414,42 +426,34 @@ export default function ScanDevice() {
               {
                 label: "Processor",
                 value: scanResult.technicalBreakdown.processor,
-                icon: <Cpu size={16} />,
               },
               {
                 label: "Battery Health",
                 value: scanResult.technicalBreakdown.batteryHealth.label,
-                icon: <Battery size={16} />,
               },
               {
                 label: "Storage",
                 value: scanResult.technicalBreakdown.storage.label,
-                icon: <HardDrive size={16} />,
               },
               {
                 label: "Modem",
                 value: scanResult.technicalBreakdown.modem,
-                icon: <Globe size={16} />,
               },
               {
                 label: "Display",
                 value: scanResult.technicalBreakdown.display,
-                icon: <Smartphone size={16} />,
               },
               {
                 label: "Warranty",
                 value: scanResult.technicalBreakdown.warranty.label,
-                icon: <History size={16} />,
               },
               {
                 label: "Origin",
                 value: scanResult.technicalBreakdown.origin.label,
-                icon: <Radio size={16} />,
               },
               {
                 label: "Activation",
                 value: scanResult.technicalBreakdown.activation.label,
-                icon: <BadgeCheck size={16} />,
               },
             ].map((item, i) => (
               <div key={item.label} className="space-y-2">
@@ -467,7 +471,6 @@ export default function ScanDevice() {
           </div>
         </motion.div>
 
-        {/* Hidden Certificate for PDF Capture - Keep it in DOM but invisible */}
         <div
           id="certificate-pdf-container"
           style={{
@@ -496,7 +499,6 @@ export default function ScanDevice() {
 
   return (
     <div className="min-h-full p-4 md:p-10 flex flex-col items-center justify-center space-y-12 max-w-4xl mx-auto font-poppins">
-      {/* Header Section */}
       <div className="text-center space-y-4">
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
@@ -516,7 +518,6 @@ export default function ScanDevice() {
         </motion.p>
       </div>
 
-      {/* Main Scan Card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -524,7 +525,6 @@ export default function ScanDevice() {
         className="w-full bg-white rounded-[40px] p-6 md:p-12 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.05)] border border-gray-100"
       >
         <div className="space-y-8">
-          {/* Service Selection Section */}
           <div className="relative">
             <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block ml-4">
               Select Diagnostic Service
@@ -536,14 +536,13 @@ export default function ScanDevice() {
             >
               <div className="flex flex-col items-start">
                 <span className="text-lg font-black text-[#0F172A] group-hover:text-[#84CC16] transition-colors">
-                  {services.find((s) => s.service === selectedServiceId)
-                    ?.name || "Select Service"}
+                  {selectedService ? selectedService.name : "Select Service"}
                 </span>
-                <span className="text-[12px] font-bold text-[#84CC16]">
-                  Price: $
-                  {services.find((s) => s.service === selectedServiceId)
-                    ?.price || "0.00"}
-                </span>
+                {selectedService && (
+                  <span className="text-[12px] font-bold text-[#84CC16]">
+                    Price: {selectedService.priceLabel}
+                  </span>
+                )}
               </div>
               <ChevronDown
                 size={24}
@@ -559,44 +558,50 @@ export default function ScanDevice() {
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   className="absolute left-0 right-0 mt-4 bg-white rounded-[32px] shadow-2xl border border-gray-100 overflow-hidden z-[100] max-h-[400px] overflow-y-auto custom-scrollbar p-3"
                 >
-                  {services.map((svc) => (
-                    <button
-                      key={svc.service}
-                      onClick={() => {
-                        setSelectedServiceId(svc.service);
-                        setIsDropdownOpen(false);
-                      }}
-                      className={`w-full flex flex-col items-start p-4 rounded-2xl transition-all mb-1 ${
-                        selectedServiceId === svc.service
-                          ? "bg-[#84CC16]/10 border-2 border-[#84CC16]/20"
-                          : "hover:bg-gray-50 border-2 border-transparent"
-                      }`}
-                    >
-                      <span
-                        className={`text-[15px] font-black text-left ${
-                          selectedServiceId === svc.service
-                            ? "text-[#84CC16]"
-                            : "text-[#0F172A]"
-                        }`}
-                      >
-                        {svc.name}
-                      </span>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-                          Price:
-                        </span>
-                        <span className="text-[12px] font-black text-[#84CC16]">
-                          ${svc.price}
-                        </span>
+                  {serviceCategories.map((cat) => (
+                    <div key={cat.category} className="mb-4 last:mb-0">
+                      <div className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 mb-2">
+                        {cat.category}
                       </div>
-                    </button>
+                      {cat.services.map((svc) => (
+                        <button
+                          key={svc._id}
+                          onClick={() => {
+                            setSelectedService(svc);
+                            setIsDropdownOpen(false);
+                          }}
+                          className={`w-full flex flex-col items-start p-4 rounded-2xl transition-all mb-1 ${
+                            selectedService?._id === svc._id
+                              ? "bg-[#84CC16]/10 border-2 border-[#84CC16]/20"
+                              : "hover:bg-gray-50 border-2 border-transparent"
+                          }`}
+                        >
+                          <span
+                            className={`text-[15px] font-black text-left ${
+                              selectedService?._id === svc._id
+                                ? "text-[#84CC16]"
+                                : "text-[#0F172A]"
+                            }`}
+                          >
+                            {svc.name}
+                          </span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                              Price:
+                            </span>
+                            <span className="text-[12px] font-black text-[#84CC16]">
+                              {svc.priceLabel}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   ))}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          {/* Input Section */}
           <div className="relative group">
             <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block ml-4">
               Device Identifier
@@ -614,10 +619,9 @@ export default function ScanDevice() {
             </div>
           </div>
 
-          {/* Action Button */}
           <button
             onClick={handleScan}
-            disabled={isScanning || !imei}
+            disabled={isScanning || !imei || !selectedService}
             className="w-full bg-[#84CC16] hover:bg-[#76b813] text-white font-black py-4 rounded-full shadow-lg shadow-lime-500/20 transition-all text-xl active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3 cursor-pointer"
           >
             {isScanning ? (
@@ -636,7 +640,6 @@ export default function ScanDevice() {
             </div>
           )}
 
-          {/* Analysis Status Section (Visible only when scanning) */}
           <AnimatePresence>
             {isScanning && (
               <motion.div
@@ -657,7 +660,6 @@ export default function ScanDevice() {
                   </span>
                 </div>
 
-                {/* Progress Steps */}
                 <div className="space-y-8 pt-6">
                   {steps.map((step, index) => {
                     const status =
@@ -695,7 +697,6 @@ export default function ScanDevice() {
                             {status}
                           </span>
                         </div>
-                        {/* Progress Bar */}
                         <div className="h-1.5 w-full bg-gray-50 rounded-full overflow-hidden ml-14">
                           <motion.div
                             initial={{ width: 0 }}
@@ -721,7 +722,6 @@ export default function ScanDevice() {
         </div>
       </motion.div>
 
-      {/* Feature Cards (Hidden when scanning) */}
       {!isScanning && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full pb-10">
           {[

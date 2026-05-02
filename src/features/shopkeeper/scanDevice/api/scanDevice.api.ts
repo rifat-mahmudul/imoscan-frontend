@@ -13,7 +13,7 @@ export const checkIMEIApi = async (
 };
 
 export const getServicesApi = async (): Promise<
-  ApiResponse<ServiceListResponse>
+  ApiResponse<ServiceListResponse["data"]>
 > => {
   const response = await axiosInstance.get("/imei/services");
   return response.data;

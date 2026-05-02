@@ -1,17 +1,152 @@
 "use client";
 
+import { useState } from "react";
+import { useSubscriptions } from "@/features/shopkeeper/payment/hooks/useSubscriptions";
+import { useCreatePaymentSession } from "@/features/shopkeeper/payment/hooks/usePayments";
+import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { CheckCircle2, CircleX, Gem, Loader2 } from "lucide-react";
 import {
-  CheckCircle2,
-  CircleX,
-  Zap,
-  Sparkles,
-  FileText,
-  Award,
-  Gem,
-} from "lucide-react";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+interface Feature {
+  name: string;
+  included: boolean;
+}
+
+interface SubscriptionPlan {
+  _id: string;
+  name: string;
+  type: string;
+  price: number;
+  priceLabel: string;
+  description: string;
+  ctaText: string;
+  customPricing: boolean;
+  isAvailable: boolean;
+  isPopular: boolean;
+  apiAccess: boolean;
+  discount?: number;
+  features: Feature[];
+}
 
 export default function Pricing() {
+  const { data: subscriptionData, isLoading } = useSubscriptions();
+  const plans = subscriptionData?.data || [];
+
+  const { mutate: createPayment, isPending } = useCreatePaymentSession();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(
+    null,
+  );
+  const [amount, setAmount] = useState("");
+
+  const handleTopUp = () => {
+    const numAmount = parseFloat(amount);
+    const minAmount = selectedPlan?.price || 2;
+
+    if (isNaN(numAmount) || numAmount < minAmount) {
+      toast.error(`Please enter a valid amount (minimum $${minAmount})`);
+      return;
+    }
+
+    createPayment(
+      { amount: numAmount, subscriptionId: selectedPlan?._id || "" },
+      {
+        onSuccess: (res) => {
+          if (res?.data?.url) {
+            window.location.href = res.data.url;
+          } else {
+            toast.error("Failed to get checkout URL");
+          }
+        },
+        onError: (err: unknown) => {
+          const error = err as { response?: { status?: number } };
+          if (error.response?.status === 401) {
+            toast.error("Please login to continue");
+            window.location.href = "/login";
+          } else {
+            toast.error("An error occurred while initiating payment");
+          }
+        },
+      },
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <section className="py-24 bg-background border-t border-border">
+        <div className="mx-auto container px-6 text-center">
+          <div className="h-10 w-64 bg-muted animate-pulse mx-auto mb-4 rounded-lg" />
+          <div className="h-6 w-96 bg-muted animate-pulse mx-auto mb-16 rounded-lg" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="h-[500px] bg-muted animate-pulse rounded-[40px]"
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const getPlanStyles = (type: string) => {
+    switch (type) {
+      case "STARTER":
+        return {
+          container: "bg-blue-500/10 dark:bg-blue-500/5 border-blue-500/10",
+          badge: "bg-background text-blue-500",
+          button:
+            "bg-white hover:bg-gray-50 border border-[#84CC16] text-[#84CC16]",
+          iconColor: "text-blue-500",
+        };
+      case "PAY AS YOU GO":
+        return {
+          container:
+            "bg-primary/10 dark:bg-primary/5 border-primary/20 border-2 relative",
+          badge:
+            "bg-blue-500 text-white absolute -top-5 left-1/2 -translate-x-1/2 px-6 py-2 shadow-lg shadow-blue-500/20",
+          button:
+            "bg-primary hover:opacity-90 text-primary-foreground shadow-lg shadow-primary/20",
+          iconColor: "text-primary",
+        };
+      case "DIAMOND":
+        return {
+          container:
+            "bg-purple-500/10 dark:bg-purple-500/5 border-purple-500/10",
+          badge: "bg-background text-purple-600",
+          button:
+            "bg-background hover:bg-muted text-primary border border-primary",
+          iconColor: "text-purple-600",
+        };
+      case "ENTERPRISE":
+        return {
+          container:
+            "bg-slate-900 dark:bg-slate-800 text-white border-slate-700",
+          badge: "bg-slate-800 text-white",
+          button: "bg-white text-slate-900 hover:bg-slate-100",
+          iconColor: "text-blue-400",
+          isDark: true,
+        };
+      default:
+        return {
+          container: "bg-card border-border",
+          badge: "bg-muted text-muted-foreground",
+          button: "bg-primary text-primary-foreground",
+          iconColor: "text-primary",
+        };
+    }
+  };
+
   return (
     <section className="py-24 bg-background border-t border-border">
       <div className="mx-auto container px-6 text-center">
@@ -36,134 +171,152 @@ export default function Pricing() {
         </motion.p>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center max-w-6xl mx-auto">
-          {/* Starter Card */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="bg-blue-500/10 dark:bg-blue-500/5 rounded-[40px] p-10 flex flex-col items-start text-left h-full border border-blue-500/10"
-          >
-            <span className="bg-background text-blue-500 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest mb-6">
-              Starter
-            </span>
-            <div className="flex items-baseline gap-1 mb-10">
-              <span className="text-4xl font-black text-foreground">$0</span>
-              <span className="text-sm font-bold text-muted-foreground">
-                /month
-              </span>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch max-w-7xl mx-auto">
+          {plans.map((plan: SubscriptionPlan, index: number) => {
+            const styles = getPlanStyles(plan.type);
+            return (
+              <motion.div
+                key={plan._id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className={`${styles.container} rounded-[40px] p-8 flex flex-col items-start text-left h-full border`}
+              >
+                {/* Popular Badge or Type Badge */}
+                {plan.isPopular && plan.type !== "PAY AS YOU GO" ? (
+                  <span
+                    className={`${styles.badge} text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest mb-6`}
+                  >
+                    {plan.name} (Popular)
+                  </span>
+                ) : (
+                  <span
+                    className={`${styles.badge} text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest mb-6`}
+                  >
+                    {plan.type === "PAY AS YOU GO"
+                      ? "Most Flexible"
+                      : plan.name}
+                  </span>
+                )}
 
-            <div className="space-y-4 mb-10 w-full">
-              <FeatureItem
-                icon={<CheckCircle2 className="w-5 h-5 text-[#3B82F6]" />}
-                text="2 Free Checks"
-              />
-              <FeatureItem
-                icon={<CheckCircle2 className="w-5 h-5 text-[#3B82F6]" />}
-                text="Basic Device Report"
-              />
-              <FeatureItem
-                icon={<CircleX className="w-5 h-5 text-[#94A3B8]" />}
-                text="No AI Explanation"
-                active={false}
-              />
-            </div>
+                <div className="flex flex-col gap-1 mb-8">
+                  <h3
+                    className={`text-2xl font-black ${styles.isDark ? "text-white" : "text-foreground"}`}
+                  >
+                    {plan.name}
+                  </h3>
+                  <div className="flex items-baseline gap-1">
+                    <span
+                      className={`text-3xl font-black ${styles.isDark ? "text-white" : "text-foreground"}`}
+                    >
+                      {plan.priceLabel}
+                    </span>
+                  </div>
+                  <p
+                    className={`text-sm ${styles.isDark ? "text-slate-400" : "text-muted-foreground"} mt-2`}
+                  >
+                    {plan.description}
+                  </p>
+                </div>
 
-            <button className="w-full mt-auto bg-white hover:bg-gray-50 border border-[#84CC16] text-[#0F172A] font-bold py-4 rounded-2xl transition shadow-sm  text-[#84CC16] cursor-pointer">
-              Start Free
-            </button>
-          </motion.div>
+                <div className="space-y-4 mb-10 w-full flex-grow">
+                  {plan.features.map((feature: Feature, fIndex: number) => (
+                    <FeatureItem
+                      key={fIndex}
+                      icon={
+                        feature.included ? (
+                          <CheckCircle2
+                            className={`w-5 h-5 ${styles.iconColor}`}
+                          />
+                        ) : (
+                          <CircleX className="w-5 h-5 text-muted-foreground opacity-50" />
+                        )
+                      }
+                      text={feature.name}
+                      active={feature.included}
+                      isDark={styles.isDark}
+                    />
+                  ))}
+                </div>
 
-          {/* Featured Card: Custom Top-up */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="bg-primary/10 dark:bg-primary/5 rounded-[40px] p-10 flex flex-col items-start text-left h-full relative border-2 border-primary/20"
-          >
-            {/* Featured Badge */}
-            <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[10px] font-black px-6 py-2 rounded-full uppercase tracking-[0.2em] shadow-lg shadow-blue-500/20 whitespace-nowrap">
-              Most Flexible
-            </div>
+                {plan.discount && plan.discount > 0 && (
+                  <div className="w-full bg-background/50 dark:bg-white/5 rounded-2xl p-4 flex items-center justify-between mb-8 border border-purple-100/20 shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <Gem className="w-5 h-5 text-blue-500" />
+                      <span
+                        className={`text-sm font-bold ${styles.isDark ? "text-white" : "text-foreground"}`}
+                      >
+                        Diamond Offer
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-1 rounded-lg uppercase">
+                      {plan.discount}% Off
+                    </span>
+                  </div>
+                )}
 
-            <div className="mt-4">
-              <h3 className="text-sm font-bold text-muted-foreground mb-2">
-                Custom Top-up
-              </h3>
-              <div className="text-4xl font-black text-foreground mb-10">
-                $2 – $30
-              </div>
-            </div>
-
-            <div className="space-y-4 mb-10 w-full">
-              <FeatureItem
-                icon={<Zap className="w-5 h-5 text-blue-500" />}
-                text="Top-up from $2 to $30"
-              />
-              <FeatureItem
-                icon={<Sparkles className="w-5 h-5 text-blue-500" />}
-                text="AI explanation"
-              />
-              <FeatureItem
-                icon={<FileText className="w-5 h-5 text-blue-500" />}
-                text="Powerful invoicing available"
-              />
-              <FeatureItem
-                icon={<Award className="w-5 h-5 text-blue-500" />}
-                text="Certificate available"
-              />
-            </div>
-
-            <button className="w-full mt-auto bg-primary hover:opacity-90 text-primary-foreground font-bold py-4 rounded-2xl transition shadow-lg shadow-primary/20 cursor-pointer">
-              Top Up & Start
-            </button>
-          </motion.div>
-
-          {/* Enterprise Card */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="bg-purple-500/10 dark:bg-purple-500/5 rounded-[40px] p-10 flex flex-col items-start text-left h-full border border-purple-500/10"
-          >
-            <h3 className="text-3xl font-black text-foreground mb-10">
-              Enterprise
-            </h3>
-
-            <div className="space-y-4 mb-8 w-full">
-              <FeatureItem
-                icon={<Zap className="w-5 h-5 text-blue-500" />}
-                text="Top-up from $2 to $30"
-              />
-              <FeatureItem
-                icon={<Sparkles className="w-5 h-5 text-blue-500" />}
-                text="AI explanation"
-              />
-              <FeatureItem
-                icon={<FileText className="w-5 h-5 text-blue-500" />}
-                text="Powerful invoicing available"
-              />
-            </div>
-
-            {/* Special Offer Pill */}
-            <div className="w-full bg-card rounded-2xl p-4 flex items-center justify-between mb-8 border border-purple-100/20 shadow-sm">
-              <div className="flex items-center gap-2">
-                <Gem className="w-5 h-5 text-blue-500" />
-                <span className="text-sm font-bold text-foreground">
-                  Diamond
-                </span>
-              </div>
-              <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-1 rounded-lg uppercase">
-                10% Off
-              </span>
-            </div>
-
-            <button className="w-full mt-auto bg-background hover:bg-muted text-primary font-bold py-4 rounded-2xl transition shadow-sm border border-primary cursor-pointer">
-              View Plans
-            </button>
-          </motion.div>
+                <button
+                  onClick={() => {
+                    if (plan.price > 0 && !plan.customPricing) {
+                      setSelectedPlan(plan);
+                      setAmount(plan.price.toString());
+                      setIsModalOpen(true);
+                    } else if (plan.customPricing) {
+                      toast.info(
+                        "Please contact our support for Enterprise solutions.",
+                      );
+                    } else {
+                      window.location.href = "/login";
+                    }
+                  }}
+                  className={`w-full mt-auto font-bold py-4 rounded-2xl transition cursor-pointer ${styles.button}`}
+                >
+                  {plan.ctaText}
+                </button>
+              </motion.div>
+            );
+          })}
         </div>
+
+        {/* Top Up Modal */}
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Top Up Wallet</DialogTitle>
+              <DialogDescription>
+                Enter the amount you would like to top up. Minimum amount for{" "}
+                {selectedPlan?.name || "this plan"} is $
+                {selectedPlan?.price || 2}.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4 text-left">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Amount (USD)</label>
+                <Input
+                  type="number"
+                  placeholder={`e.g. ${selectedPlan?.price || 15}`}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  min={selectedPlan?.price || 2}
+                  step="0.01"
+                />
+              </div>
+
+              <Button
+                className="w-full bg-[#84CC16] hover:bg-[#76b813] text-white font-bold h-12"
+                onClick={handleTopUp}
+                disabled={isPending || !amount}
+              >
+                {isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : null}
+                Proceed to Checkout
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </section>
   );
@@ -173,16 +326,24 @@ function FeatureItem({
   icon,
   text,
   active = true,
+  isDark = false,
 }: {
   icon: React.ReactNode;
   text: string;
   active?: boolean;
+  isDark?: boolean;
 }) {
   return (
     <div className="flex items-center gap-3">
       {icon}
       <span
-        className={`text-sm font-semibold ${active ? "text-foreground" : "text-muted-foreground line-through decoration-2"}`}
+        className={`text-sm font-semibold ${
+          active
+            ? isDark
+              ? "text-slate-200"
+              : "text-foreground"
+            : "text-muted-foreground line-through decoration-2 opacity-50"
+        }`}
       >
         {text}
       </span>
