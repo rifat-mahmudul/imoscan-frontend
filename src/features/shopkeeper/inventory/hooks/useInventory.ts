@@ -4,6 +4,7 @@ import {
   createInventory,
   updateInventory,
   deleteInventory,
+  createFromBarcode,
 } from "../api/inventory.api";
 import type { CreateInventoryInput, UpdateInventoryInput } from "../types";
 
@@ -44,6 +45,17 @@ export function useDeleteInventory() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteInventory(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: INVENTORY_KEYS.all });
+    },
+  });
+}
+
+export function useCreateFromBarcode() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { code: string; userId: string }) =>
+      createFromBarcode(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: INVENTORY_KEYS.all });
     },

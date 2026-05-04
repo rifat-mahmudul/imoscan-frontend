@@ -189,7 +189,7 @@ export default function Inventory() {
                           align="end"
                           className="rounded-xl border-slate-100 p-2 shadow-xl"
                         >
-                          <DropdownMenuItem
+                          {/* <DropdownMenuItem
                             onClick={() => {
                               setEditingItem(item);
                               setIsFormOpen(true);
@@ -198,7 +198,7 @@ export default function Inventory() {
                           >
                             <Edit2 size={14} />
                             Edit Item
-                          </DropdownMenuItem>
+                          </DropdownMenuItem> */}
                           <DropdownMenuItem
                             onClick={() => handleDelete(item._id)}
                             className="flex items-center gap-2 p-3 font-bold text-xs rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 cursor-pointer"

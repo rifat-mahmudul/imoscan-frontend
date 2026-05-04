@@ -129,3 +129,8 @@ export type SoldProductListResponse = z.infer<
   typeof SoldProductListResponseSchema
 >;
 export type CreateSoldProductInput = z.infer<typeof CreateSoldProductSchema>;
+
+export interface ScanResultData {
+  itemName?: string;
+  imeiNumber?: string;
+}
