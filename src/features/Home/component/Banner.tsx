@@ -169,7 +169,7 @@ export default function Banner() {
               <input
                 type="file"
                 ref={fileInputRef}
-                accept="image/*"
+                accept="/*"
                 capture="environment"
                 className="hidden"
               />

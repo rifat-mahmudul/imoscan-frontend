@@ -56,3 +56,11 @@ export const deleteInventory = async (id: string) => {
   const response = await api.delete(`${BASE}/${id}`);
   return response.data;
 };
+
+export const createFromBarcode = async (input: {
+  code: string;
+  userId: string;
+}) => {
+  const response = await api.post(`${BASE}/create-from-barcode`, input);
+  return response.data;
+};
