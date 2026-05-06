@@ -23,7 +23,7 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   checkIMEIApi,
   getServicesApi,
@@ -34,12 +34,16 @@ import {
   IMEIService,
   ServiceCategory,
 } from "../../scanDevice/types/scanDevice.types";
-import { CertificatePDF } from "./CertificatePDF";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { ScannerModal } from "@/components/shared/website/ScannerModal";
 import { BulkImeiUploadModal } from "@/components/shared/website/BulkImeiUploadModal";
 import { ImeiReportDetails } from "./ImeiReportDetails";
+import {
+  CertificatePDF,
+  CERTIFICATE_PDF_HEIGHT,
+  CERTIFICATE_PDF_WIDTH,
+} from "./CertificatePDF";
 import {
   Select,
   SelectContent,
@@ -88,7 +92,6 @@ export default function ScanDevice() {
     provider?: string;
     serviceId?: number;
   } | null>(null);
-  const certificateRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -276,87 +279,113 @@ export default function ScanDevice() {
     );
   }, [batchResult, selectedBatchIndex]);
 
-  const handleDownloadPDF = async () => {
-    if (!scanResult) return;
-    setIsDownloading(true);
+  const downloadCertificatePdf = useCallback(
+    async (elementIds: string[], filename: string) => {
+      if (elementIds.length === 0) return;
+      setIsDownloading(true);
 
-    try {
-      console.log("Starting PDF generation process...");
-
-      // Wait for elements to be ready
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      const element = document.getElementById("certificate-pdf-container");
-      if (!element) {
-        throw new Error(
-          "Target element 'certificate-pdf-container' not found in DOM",
-        );
-      }
-
-      const styleSheets = Array.from(
-        document.querySelectorAll("style, link[rel='stylesheet']"),
-      ) as (HTMLStyleElement | HTMLLinkElement)[];
-      const originalMedias = styleSheets.map((s) => s.media || "");
-
-      console.log(
-        `Temporarily disabling ${styleSheets.length} stylesheets to avoid oklch error...`,
-      );
-      styleSheets.forEach((s) => (s.media = "none"));
-
-      let canvas;
       try {
-        canvas = await html2canvas(element, {
-          scale: 2,
-          useCORS: true,
-          logging: true,
-          backgroundColor: "#ffffff",
-          width: 800,
-          height: 1120,
-          onclone: (clonedDoc) => {
-            const clonedElement = clonedDoc.getElementById(
-              "certificate-pdf-container",
-            );
-            if (clonedElement) {
-              clonedElement.style.opacity = "1";
-              clonedElement.style.visibility = "visible";
-              clonedElement.style.position = "static";
-              clonedElement.style.display = "block";
-              clonedElement.style.backgroundColor = "#ffffff";
-            }
-          },
+        await new Promise((resolve) => setTimeout(resolve, 400));
+
+        const styleSheets = Array.from(
+          document.querySelectorAll("style, link[rel='stylesheet']"),
+        ) as (HTMLStyleElement | HTMLLinkElement)[];
+        const originalMedias = styleSheets.map((s) => s.media || "");
+
+        styleSheets.forEach((s) => (s.media = "none"));
+
+        const pdf = new jsPDF({
+          orientation: "portrait",
+          unit: "px",
+          format: [CERTIFICATE_PDF_WIDTH, CERTIFICATE_PDF_HEIGHT],
         });
+
+        try {
+          for (let index = 0; index < elementIds.length; index += 1) {
+            const element = document.getElementById(elementIds[index]);
+            if (!element) {
+              throw new Error(
+                `Certificate element "${elementIds[index]}" not found in DOM`,
+              );
+            }
+
+            const canvas = await html2canvas(element, {
+              scale: 2,
+              useCORS: true,
+              logging: false,
+              backgroundColor: "#ffffff",
+              width: CERTIFICATE_PDF_WIDTH,
+              height: CERTIFICATE_PDF_HEIGHT,
+            });
+
+            const imgData = canvas.toDataURL("image/png", 1.0);
+
+            if (index > 0) {
+              pdf.addPage(
+                [CERTIFICATE_PDF_WIDTH, CERTIFICATE_PDF_HEIGHT],
+                "portrait",
+              );
+            }
+
+            pdf.addImage(
+              imgData,
+              "PNG",
+              0,
+              0,
+              CERTIFICATE_PDF_WIDTH,
+              CERTIFICATE_PDF_HEIGHT,
+            );
+          }
+        } finally {
+          styleSheets.forEach((s, i) => (s.media = originalMedias[i]));
+        }
+
+        pdf.save(filename);
+      } catch (err: unknown) {
+        const error = err as Error;
+        console.error("Certificate PDF generation failed:", error);
+        alert(
+          `Failed to generate certificate PDF: ${error.message || "Unknown error"}.`,
+        );
       } finally {
-        console.log("Restoring stylesheets...");
-        styleSheets.forEach((s, i) => (s.media = originalMedias[i]));
+        setIsDownloading(false);
       }
+    },
+    [],
+  );
 
-      if (!canvas) throw new Error("Canvas capture failed");
-
-      console.log("Canvas captured successfully. Generating PDF...");
-      const imgData = canvas.toDataURL("image/png", 1.0);
-
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "px",
-        format: [800, 1120],
-      });
-
-      pdf.addImage(imgData, "PNG", 0, 0, 800, 1120);
-      pdf.save(`Certificate_${scanResult.imei}.pdf`);
-      console.log("PDF saved successfully.");
-    } catch (err: unknown) {
-      const error = err as Error;
-      console.error("Detailed PDF Generation Error:", error);
-      alert(
-        `Failed to generate PDF: ${error.message || "Unknown error"}. Please check the console for details.`,
-      );
-    } finally {
-      setIsDownloading(false);
-    }
-  };
+  const handleDownloadSingleCertificate = useCallback(() => {
+    if (!scanResult) return;
+    void downloadCertificatePdf(
+      ["certificate-pdf-single"],
+      `Certificate_${scanResult.imei}.pdf`,
+    );
+  }, [downloadCertificatePdf, scanResult]);
 
   const batchRows = Array.isArray(batchResult?.data) ? batchResult.data : [];
+  const successfulBatchRows = batchRows.filter(
+    (row): row is typeof row & { data: IMEIResult } =>
+      Boolean(row.ok && row.data),
+  );
   const selectedBatchRow = batchRows[selectedBatchIndex] ?? null;
+
+  const handleDownloadSelectedBulkCertificate = useCallback(() => {
+    if (!selectedBatchRow?.ok || !selectedBatchRow.data) return;
+    void downloadCertificatePdf(
+      [`certificate-pdf-bulk-${selectedBatchIndex}`],
+      `Certificate_${selectedBatchRow.imei}.pdf`,
+    );
+  }, [downloadCertificatePdf, selectedBatchIndex, selectedBatchRow]);
+
+  const handleDownloadAllBulkCertificates = useCallback(() => {
+    if (successfulBatchRows.length === 0) return;
+    void downloadCertificatePdf(
+      successfulBatchRows.map(
+        (_, index) => `certificate-pdf-bulk-success-${index}`,
+      ),
+      `Bulk_IMEI_Certificates_${new Date().toISOString().slice(0, 10)}.pdf`,
+    );
+  }, [downloadCertificatePdf, successfulBatchRows]);
 
   if (scanResult) {
     return (
@@ -519,7 +548,7 @@ export default function ScanDevice() {
                 Create Smart Invoice
               </button>
               <button
-                onClick={handleDownloadPDF}
+                onClick={handleDownloadSingleCertificate}
                 disabled={isDownloading}
                 className="w-full py-4 rounded-xl bg-[#84CC16] text-white font-black text-sm hover:bg-[#76b813] transition shadow-lg shadow-lime-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-wait"
               >
@@ -613,25 +642,28 @@ export default function ScanDevice() {
         </motion.div>
 
         <div
-          id="certificate-pdf-container"
+          id="certificate-pdf-single-container"
           style={{
             position: "fixed",
             top: 0,
-            left: 0,
-            width: "800px",
-            height: "1120px",
+            left: "-10000px",
+            width: `${CERTIFICATE_PDF_WIDTH}px`,
+            minHeight: `${CERTIFICATE_PDF_HEIGHT}px`,
             backgroundColor: "white",
             pointerEvents: "none",
-            zIndex: -9999,
-            opacity: 0,
-            visibility: "hidden",
+            zIndex: -1,
             overflow: "hidden",
           }}
         >
           <CertificatePDF
             data={scanResult}
-            id="certificate-pdf"
-            ref={certificateRef}
+            id="certificate-pdf-single"
+            providerName={singleReportMeta?.provider || selectedService?.name}
+            serviceId={
+              singleReportMeta?.serviceId ??
+              selectedService?.serviceId ??
+              undefined
+            }
           />
         </div>
       </div>
@@ -663,7 +695,7 @@ export default function ScanDevice() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="w-full bg-white rounded-[40px] p-6 md:p-12 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.05)] border border-gray-100"
+        className="w-full bg-white max-w-4xl rounded-[40px] p-6 md:p-12 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.05)] border border"
       >
         <div className="space-y-8">
           <div className="relative">
@@ -1014,6 +1046,23 @@ export default function ScanDevice() {
               </div>
             </div>
 
+            {successfulBatchRows.length > 0 ? (
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={handleDownloadAllBulkCertificates}
+                  disabled={isDownloading}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#84CC16] px-5 py-3 text-sm font-black text-white transition hover:bg-[#76b813] disabled:cursor-wait disabled:opacity-70"
+                >
+                  {isDownloading ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Download size={16} />
+                  )}
+                  Download All Certificates
+                </button>
+              </div>
+            ) : null}
+
             <div className="mt-6 rounded-[28px] border border-gray-100 bg-[#F8FAFC] p-4 md:p-5">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
@@ -1083,18 +1132,34 @@ export default function ScanDevice() {
             animate={{ opacity: 1, y: 0 }}
           >
             {selectedBatchRow.ok && selectedBatchRow.data ? (
-              <ImeiReportDetails
-                result={selectedBatchRow.data}
-                caption="Provider data is used as the primary source and organized into a clean report."
-                meta={{
-                  provider: selectedBatchRow.provider,
-                  serviceId: selectedBatchRow.serviceId,
-                  cached: selectedBatchRow.cached,
-                  message: selectedBatchRow.message,
-                  rowNumber: selectedBatchIndex + 1,
-                  totalRows: batchRows.length,
-                }}
-              />
+              <div className="space-y-4">
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleDownloadSelectedBulkCertificate}
+                    disabled={isDownloading}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-black text-[#0F172A] transition hover:bg-gray-50 disabled:cursor-wait disabled:opacity-70"
+                  >
+                    {isDownloading ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Download size={16} />
+                    )}
+                    Download This Certificate
+                  </button>
+                </div>
+                <ImeiReportDetails
+                  result={selectedBatchRow.data}
+                  caption="Provider data is used as the primary source and organized into a clean report."
+                  meta={{
+                    provider: selectedBatchRow.provider,
+                    serviceId: selectedBatchRow.serviceId,
+                    cached: selectedBatchRow.cached,
+                    message: selectedBatchRow.message,
+                    rowNumber: selectedBatchIndex + 1,
+                    totalRows: batchRows.length,
+                  }}
+                />
+              </div>
             ) : (
               <div className="rounded-[32px] border border-red-100 bg-red-50 p-8 shadow-sm">
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-red-500">
@@ -1135,6 +1200,37 @@ export default function ScanDevice() {
               </div>
             )}
           </motion.div>
+
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: "-10000px",
+              width: `${CERTIFICATE_PDF_WIDTH}px`,
+              pointerEvents: "none",
+              zIndex: -1,
+              overflow: "hidden",
+            }}
+          >
+            {successfulBatchRows.map((row, index) => (
+              <CertificatePDF
+                key={`bulk-certificate-${row.rowNumber}-${row.imei}-${index}`}
+                data={row.data}
+                id={`certificate-pdf-bulk-success-${index}`}
+                providerName={row.provider}
+                serviceId={row.serviceId}
+              />
+            ))}
+            {selectedBatchRow?.ok && selectedBatchRow.data ? (
+              <CertificatePDF
+                key={`selected-bulk-certificate-${selectedBatchIndex}`}
+                data={selectedBatchRow.data}
+                id={`certificate-pdf-bulk-${selectedBatchIndex}`}
+                providerName={selectedBatchRow.provider}
+                serviceId={selectedBatchRow.serviceId}
+              />
+            ) : null}
+          </div>
         </div>
       )}
     </div>

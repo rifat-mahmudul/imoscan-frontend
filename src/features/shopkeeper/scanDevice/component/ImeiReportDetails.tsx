@@ -141,7 +141,7 @@ function getRiskColor(score: number) {
 }
 
 /** Circular arc risk meter */
-function RiskArc({ score, label }: { score: number; label: string }) {
+function RiskArc({ score }: { score: number }) {
   const r = 42;
   const cx = 56;
   const cy = 56;
@@ -705,7 +705,7 @@ export function ImeiReportDetails({
             {/* Arc meter + insight text side-by-side */}
             <div className="flex items-start gap-5">
               <div className="shrink-0">
-                <RiskArc score={riskScore} label={riskLabel} />
+                <RiskArc score={riskScore} />
                 <p
                   className={`mt-1 text-center text-[11px] font-black uppercase tracking-[0.16em] ${riskColor.text}`}
                 >
