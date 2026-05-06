@@ -16,6 +16,11 @@ import {
   Wallet,
   ChevronDown,
   Upload,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle2,
+  XCircle,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -24,6 +29,7 @@ import {
   getServicesApi,
 } from "../../scanDevice/api/scanDevice.api";
 import {
+  BatchImeiResponse,
   IMEIResult,
   IMEIService,
   ServiceCategory,
@@ -34,6 +40,28 @@ import { jsPDF } from "jspdf";
 import { ScannerModal } from "@/components/shared/website/ScannerModal";
 import { BulkImeiUploadModal } from "@/components/shared/website/BulkImeiUploadModal";
 import { ImeiReportDetails } from "./ImeiReportDetails";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const LAST_REPORT_STORAGE_KEY = "imoscan:last-report:v1";
+
+type PersistedReportState = {
+  version: 1;
+  mode: "single" | "bulk";
+  savedAt: string;
+  singleResult?: IMEIResult | null;
+  singleMeta?: {
+    provider?: string;
+    serviceId?: number;
+  };
+  batchResult?: BatchImeiResponse | null;
+  selectedBatchIndex?: number;
+};
 
 export default function ScanDevice() {
   const [imei, setImei] = useState("");
@@ -52,6 +80,14 @@ export default function ScanDevice() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [batchResult, setBatchResult] = useState<BatchImeiResponse | null>(
+    null,
+  );
+  const [selectedBatchIndex, setSelectedBatchIndex] = useState(0);
+  const [singleReportMeta, setSingleReportMeta] = useState<{
+    provider?: string;
+    serviceId?: number;
+  } | null>(null);
   const certificateRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
 
@@ -99,6 +135,41 @@ export default function ScanDevice() {
     }
   }, [searchParams, services]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const raw = window.localStorage.getItem(LAST_REPORT_STORAGE_KEY);
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw) as PersistedReportState;
+      if (!parsed || parsed.version !== 1) return;
+
+      if (parsed.mode === "single" && parsed.singleResult) {
+        setScanResult(parsed.singleResult);
+        setBatchResult(null);
+        setSingleReportMeta(parsed.singleMeta ?? null);
+        return;
+      }
+
+      if (parsed.mode === "bulk" && parsed.batchResult) {
+        setBatchResult(parsed.batchResult);
+        setScanResult(null);
+        setSingleReportMeta(null);
+        const maxIndex = Math.max(
+          0,
+          (parsed.batchResult.data?.length ?? 1) - 1,
+        );
+        setSelectedBatchIndex(
+          Math.min(Math.max(parsed.selectedBatchIndex ?? 0, 0), maxIndex),
+        );
+      }
+    } catch (error) {
+      console.error("Failed to restore last IMEI report:", error);
+      window.localStorage.removeItem(LAST_REPORT_STORAGE_KEY);
+    }
+  }, []);
+
   const steps = [
     { id: 1, label: "Fetching Data", progress: 100 },
     { id: 2, label: "Analyzing Components", progress: 100 },
@@ -111,6 +182,7 @@ export default function ScanDevice() {
       if (!imeiToScan || !selectedService) return;
       setIsScanning(true);
       setScanResult(null);
+      setBatchResult(null);
       setError(null);
       setCurrentStep(1);
 
@@ -128,6 +200,10 @@ export default function ScanDevice() {
           // Wait for animations to finish before showing results
           setTimeout(() => {
             setScanResult(response.data!);
+            setSingleReportMeta({
+              provider: selectedService?.name,
+              serviceId: selectedService?.serviceId ?? undefined,
+            });
             setIsScanning(false);
           }, 4500);
         } else {
@@ -165,6 +241,40 @@ export default function ScanDevice() {
       handleScan();
     }
   }, [imei, selectedService, searchParams, handleScan, isScanning, scanResult]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !scanResult) return;
+
+    const payload: PersistedReportState = {
+      version: 1,
+      mode: "single",
+      savedAt: new Date().toISOString(),
+      singleResult: scanResult,
+      singleMeta: singleReportMeta ?? undefined,
+    };
+
+    window.localStorage.setItem(
+      LAST_REPORT_STORAGE_KEY,
+      JSON.stringify(payload),
+    );
+  }, [scanResult, singleReportMeta]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !batchResult) return;
+
+    const payload: PersistedReportState = {
+      version: 1,
+      mode: "bulk",
+      savedAt: new Date().toISOString(),
+      batchResult,
+      selectedBatchIndex,
+    };
+
+    window.localStorage.setItem(
+      LAST_REPORT_STORAGE_KEY,
+      JSON.stringify(payload),
+    );
+  }, [batchResult, selectedBatchIndex]);
 
   const handleDownloadPDF = async () => {
     if (!scanResult) return;
@@ -245,12 +355,18 @@ export default function ScanDevice() {
     }
   };
 
+  const batchRows = Array.isArray(batchResult?.data) ? batchResult.data : [];
+  const selectedBatchRow = batchRows[selectedBatchIndex] ?? null;
+
   if (scanResult) {
     return (
       <div className="p-4 md:p-10 max-w-6xl mx-auto space-y-8 font-poppins">
         {/* Back Button */}
         <button
-          onClick={() => setScanResult(null)}
+          onClick={() => {
+            setScanResult(null);
+            setSingleReportMeta(null);
+          }}
           className="flex items-center gap-2 text-[#64748B] hover:text-[#0F172A] font-bold transition group cursor-pointer"
         >
           <ArrowLeft
@@ -486,8 +602,11 @@ export default function ScanDevice() {
             result={scanResult}
             caption="The scan response is organized into readable report fields for quick review."
             meta={{
-              provider: selectedService?.name,
-              serviceId: selectedService?.serviceId ?? undefined,
+              provider: singleReportMeta?.provider || selectedService?.name,
+              serviceId:
+                singleReportMeta?.serviceId ??
+                selectedService?.serviceId ??
+                undefined,
               message: "Single IMEI check completed successfully.",
             }}
           />
@@ -520,7 +639,7 @@ export default function ScanDevice() {
   }
 
   return (
-    <div className="min-h-full p-4 md:p-10 flex flex-col items-center justify-center space-y-12 max-w-4xl mx-auto font-poppins">
+    <div className="min-h-full p-4 md:p-10 flex flex-col items-center justify-center space-y-12 mx-auto font-poppins">
       <div className="text-center space-y-4">
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
@@ -815,7 +934,209 @@ export default function ScanDevice() {
         isOpen={isBulkModalOpen}
         onClose={() => setIsBulkModalOpen(false)}
         serviceId={selectedService?.serviceId || 6}
+        onBatchComplete={(result) => {
+          setScanResult(null);
+          setBatchResult(result);
+          setSelectedBatchIndex(0);
+          setSingleReportMeta(null);
+          setError(null);
+        }}
       />
+
+      {batchResult && selectedBatchRow && (
+        <div className="w-full space-y-6 pb-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-[32px] border border-gray-100 bg-white p-6 md:p-8 shadow-sm"
+          >
+            <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#84CC16]">
+                  Reports
+                </p>
+                <h2 className="mt-2 text-2xl md:text-3xl font-black text-[#0F172A]">
+                  Bulk IMEI Scan Results
+                </h2>
+                <p className="mt-2 text-sm font-medium text-[#64748B] max-w-2xl">
+                  Results are rendered directly on this page and organized one
+                  at a time for easier review.
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  setBatchResult(null);
+                  setSelectedBatchIndex(0);
+                  if (typeof window !== "undefined") {
+                    window.localStorage.removeItem(LAST_REPORT_STORAGE_KEY);
+                  }
+                }}
+                className="inline-flex items-center justify-center rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-black text-[#64748B] transition hover:bg-gray-50 hover:text-[#0F172A]"
+              >
+                Clear Results
+              </button>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <div className="flex items-center gap-3">
+                  <FileSpreadsheet className="h-5 w-5 text-slate-500" />
+                  <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+                    Total
+                  </span>
+                </div>
+                <p className="mt-3 text-2xl font-black text-slate-900">
+                  {batchResult.summary?.total ?? 0}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-lime-100 bg-lime-50 p-4">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-lime-600" />
+                  <span className="text-[11px] font-black uppercase tracking-[0.18em] text-lime-700">
+                    Success
+                  </span>
+                </div>
+                <p className="mt-3 text-2xl font-black text-lime-700">
+                  {batchResult.summary?.successCount ?? 0}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-red-100 bg-red-50 p-4">
+                <div className="flex items-center gap-3">
+                  <XCircle className="h-5 w-5 text-red-500" />
+                  <span className="text-[11px] font-black uppercase tracking-[0.18em] text-red-600">
+                    Failed
+                  </span>
+                </div>
+                <p className="mt-3 text-2xl font-black text-red-600">
+                  {batchResult.summary?.failedCount ?? 0}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-[28px] border border-gray-100 bg-[#F8FAFC] p-4 md:p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-[#94A3B8]">
+                    Navigate Results
+                  </h3>
+                  <p className="mt-2 text-sm font-semibold text-[#64748B]">
+                    Use the selector or next and previous controls to inspect
+                    each IMEI report.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+                  <Select
+                    value={String(selectedBatchIndex)}
+                    onValueChange={(value) =>
+                      setSelectedBatchIndex(Number(value))
+                    }
+                  >
+                    <SelectTrigger className="w-full min-w-[260px] rounded-xl border-slate-200 bg-white">
+                      <SelectValue placeholder="Select a result" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {batchRows.map((row, index) => (
+                        <SelectItem
+                          key={`${row.rowNumber}-${row.imei}-${index}`}
+                          value={String(index)}
+                        >
+                          {`Row ${row.rowNumber} - ${row.imei}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <button
+                    onClick={() =>
+                      setSelectedBatchIndex((current) =>
+                        Math.max(current - 1, 0),
+                      )
+                    }
+                    disabled={selectedBatchIndex === 0}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Prev
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      setSelectedBatchIndex((current) =>
+                        Math.min(current + 1, batchRows.length - 1),
+                      )
+                    }
+                    disabled={selectedBatchIndex === batchRows.length - 1}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            {selectedBatchRow.ok && selectedBatchRow.data ? (
+              <ImeiReportDetails
+                result={selectedBatchRow.data}
+                caption="Provider data is used as the primary source and organized into a clean report."
+                meta={{
+                  provider: selectedBatchRow.provider,
+                  serviceId: selectedBatchRow.serviceId,
+                  cached: selectedBatchRow.cached,
+                  message: selectedBatchRow.message,
+                  rowNumber: selectedBatchIndex + 1,
+                  totalRows: batchRows.length,
+                }}
+              />
+            ) : (
+              <div className="rounded-[32px] border border-red-100 bg-red-50 p-8 shadow-sm">
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-red-500">
+                  Failed Result
+                </p>
+                <h3 className="mt-2 text-2xl font-black text-red-700">
+                  Row {selectedBatchRow.rowNumber} could not be processed
+                </h3>
+                <p className="mt-3 text-sm font-semibold text-red-600">
+                  {selectedBatchRow.message}
+                </p>
+                <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="rounded-2xl border border-red-100 bg-white px-4 py-4">
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-400">
+                      Row
+                    </p>
+                    <p className="mt-2 text-sm font-bold text-slate-900">
+                      {selectedBatchRow.rowNumber}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-red-100 bg-white px-4 py-4">
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-400">
+                      IMEI
+                    </p>
+                    <p className="mt-2 text-sm font-bold text-slate-900 break-all">
+                      {selectedBatchRow.imei}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-red-100 bg-white px-4 py-4">
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-400">
+                      Service ID
+                    </p>
+                    <p className="mt-2 text-sm font-bold text-slate-900">
+                      {selectedBatchRow.serviceId ?? "N/A"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

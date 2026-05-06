@@ -40,6 +40,7 @@ interface BulkImeiUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   serviceId?: number;
+  onBatchComplete?: (result: BatchImeiResponse) => void;
 }
 
 type UploadPhase = "idle" | "selected" | "uploading" | "done";
@@ -109,6 +110,7 @@ export function BulkImeiUploadModal({
   isOpen,
   onClose,
   serviceId = 6,
+  onBatchComplete,
 }: BulkImeiUploadModalProps) {
   const [phase, setPhase] = useState<UploadPhase>("idle");
   const [file, setFile] = useState<File | null>(null);
@@ -193,6 +195,13 @@ export function BulkImeiUploadModal({
 
       setUploadResult(response);
       setSelectedResultIndex(0);
+
+      if (onBatchComplete) {
+        onBatchComplete(response);
+        handleClose();
+        return;
+      }
+
       setPhase("done");
     } catch (err: unknown) {
       const error = err as {
