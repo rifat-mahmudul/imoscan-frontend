@@ -61,7 +61,7 @@ export default function RepairHistoryTable() {
 
   return (
     <div className="px-4 py-8 md:px-8 lg:px-12 font-poppins min-h-screen bg-background">
-      <div className="mx-auto max-w-[1200px] space-y-8">
+      <div className="mx-auto  space-y-8">
         <div>
           <h1 className="text-3xl font-black text-foreground tracking-tight">
             Repair History

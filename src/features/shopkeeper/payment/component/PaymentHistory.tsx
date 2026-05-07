@@ -70,7 +70,7 @@ export default function PaymentHistory() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-[#0F172A] tracking-tight">
+          <h1 className="text-3xl font-black text-foreground tracking-tight">
             Payment History
           </h1>
           <p className="text-[#64748B] font-medium mt-1">
@@ -87,10 +87,10 @@ export default function PaymentHistory() {
             <input
               type="text"
               placeholder="Search invoices..."
-              className="pl-12 pr-6 py-3.5 bg-white border border-gray-100 rounded-2xl outline-none focus:border-[#84CC16] focus:ring-4 focus:ring-[#84CC16]/5 transition-all text-sm font-semibold w-full md:w-[300px] shadow-sm"
+              className="pl-12 pr-6 py-3.5 bg-card border border-border rounded-2xl outline-none focus:border-[#84CC16] focus:ring-4 focus:ring-[#84CC16]/5 transition-all text-sm font-semibold w-full md:w-[300px] shadow-sm"
             />
           </div>
-          <button className="p-3.5 bg-white border border-gray-100 rounded-2xl hover:bg-gray-50 transition shadow-sm group">
+          <button className="p-3.5 bg-card border border-border rounded-2xl hover:bg-gray-50 transition shadow-sm group">
             <Filter
               size={18}
               className="text-[#64748B] group-hover:text-[#0F172A]"
@@ -103,12 +103,12 @@ export default function PaymentHistory() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-[40px] border border-gray-100 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.04)] overflow-hidden"
+        className="bg-card rounded-[40px] border border-border shadow-[0_20px_50px_-12px_rgba(0,0,0,0.04)] overflow-hidden"
       >
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-gray-50 bg-[#FBFDFB]">
+              <tr className="border-b border-border bg-surface">
                 <th className="px-8 py-6 text-[11px] font-black text-[#94A3B8] uppercase tracking-[0.15em]">
                   Transaction ID
                 </th>
@@ -129,7 +129,7 @@ export default function PaymentHistory() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-border">
               {payments.map((row: (typeof payments)[number], i: number) => (
                 <motion.tr
                   key={row.id}
@@ -144,7 +144,7 @@ export default function PaymentHistory() {
                     </span>
                   </td>
                   <td className="px-8 py-5">
-                    <span className="text-sm font-black text-[#0F172A]">
+                    <span className="text-sm font-black text-foreground">
                       {row.amount}
                     </span>
                   </td>
@@ -189,10 +189,10 @@ export default function PaymentHistory() {
         </div>
 
         {/* Pagination Section */}
-        <div className="px-8 py-8 border-t border-gray-50 flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#FBFDFB]/50">
+        <div className="px-8 py-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 bg-surface">
           <p className="text-sm font-bold text-[#64748B]">
             Showing{" "}
-            <span className="text-[#0F172A] font-black">
+            <span className="text-foreground font-black">
               1 - {payments.length}
             </span>{" "}
             of{" "}

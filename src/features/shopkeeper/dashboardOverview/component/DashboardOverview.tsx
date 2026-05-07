@@ -126,11 +126,11 @@ const inventoryItems = [
 
 export default function DashboardOverview() {
   return (
-    <div className="p-4 md:p-10 max-w-[1600px] mx-auto space-y-10 font-poppins bg-[#FBFDFB]">
+    <div className="p-4 md:p-10 max-w-[1600px] mx-auto space-y-10 font-poppins bg-background">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-[#0F172A] tracking-tight">
+          <h1 className="text-3xl font-black text-foreground tracking-tight">
             Dashboard Overview
           </h1>
           <p className="text-[#64748B] font-medium mt-1">
@@ -140,7 +140,7 @@ export default function DashboardOverview() {
       </div>
 
       {/* Stats Cards Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 ">
         {[
           {
             label: "Total Invoices",
@@ -180,7 +180,7 @@ export default function DashboardOverview() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-md transition-all group"
+            className="bg-card p-6 rounded-[32px] border border-border shadow-sm hover:shadow-md transition-all group"
           >
             <div className="flex justify-between items-start mb-6">
               <div
@@ -198,7 +198,7 @@ export default function DashboardOverview() {
               <p className="text-[11px] font-black text-[#94A3B8] uppercase tracking-[0.15em]">
                 {stat.label}
               </p>
-              <h3 className="text-2xl font-black text-[#0F172A]">
+              <h3 className="text-2xl font-black text-foreground">
                 {stat.value}
               </h3>
             </div>
@@ -211,16 +211,16 @@ export default function DashboardOverview() {
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.4 }}
-        className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm"
+        className="bg-card p-8 rounded-[40px] border border-border shadow-sm"
       >
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
           <div>
-            <h2 className="text-xl font-black text-[#0F172A]">
+            <h2 className="text-xl font-black text-foreground">
               Revenue Overview
             </h2>
             <div className="flex items-center gap-2 mt-1">
               <div className="w-2 h-2 rounded-full bg-[#84CC16]" />
-              <span className="text-xs font-bold text-[#64748B]">
+              <span className="text-xs font-bold text-muted-foreground">
                 Monthly Revenue
               </span>
             </div>
@@ -304,10 +304,10 @@ export default function DashboardOverview() {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.5 }}
-          className="lg:col-span-2 bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden"
+          className="lg:col-span-2 bg-card rounded-[40px] border border-border shadow-sm overflow-hidden"
         >
-          <div className="p-8 flex items-center justify-between border-b border-gray-50">
-            <h2 className="text-xl font-black text-[#0F172A]">
+          <div className="p-8 flex items-center justify-between border-b border-border">
+            <h2 className="text-xl font-black text-foreground">
               Customer Summary
             </h2>
             <button className="text-[#84CC16] font-black text-xs hover:underline uppercase tracking-widest">
@@ -348,12 +348,12 @@ export default function DashboardOverview() {
                         >
                           {customer.initial}
                         </div>
-                        <span className="text-sm font-bold text-[#0F172A]">
+                        <span className="text-sm font-bold text-foreground">
                           {customer.name}
                         </span>
                       </div>
                     </td>
-                    <td className="px-8 py-5 text-sm font-black text-[#0F172A]">
+                    <td className="px-8 py-5 text-sm font-black text-[#64748B]">
                       {customer.outstanding}
                     </td>
                     <td className="px-8 py-5 text-sm font-bold text-[#64748B]">
@@ -381,13 +381,13 @@ export default function DashboardOverview() {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.6 }}
-          className="bg-white rounded-[40px] border border-gray-100 shadow-sm p-8"
+          className="bg-card rounded-[40px] border border-border shadow-sm p-8"
         >
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-xl font-black text-[#0F172A]">
+            <h2 className="text-xl font-black text-foreground">
               Upcoming Due Dates
             </h2>
-            <div className="p-2 bg-gray-50 rounded-lg">
+            <div className="p-2 bg-[#F0FDF4] rounded-lg">
               <CalendarIcon size={18} className="text-[#64748B]" />
             </div>
           </div>
@@ -395,7 +395,7 @@ export default function DashboardOverview() {
             {upcomingDueDates.map((due) => (
               <div
                 key={due.id}
-                className="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100 group"
+                className="flex items-center gap-4 p-4 rounded-2xl hover:bg-foreground/10 transition-all border border-transparent hover:border-border group"
               >
                 <div className="w-14 h-14 bg-[#F0FDF4] rounded-2xl flex flex-col items-center justify-center flex-shrink-0 border border-[#DCFCE7]">
                   <span className="text-[10px] font-black text-[#166534] uppercase">
@@ -407,10 +407,10 @@ export default function DashboardOverview() {
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between items-start">
-                    <h4 className="text-[14px] font-black text-[#0F172A]">
+                    <h4 className="text-[14px] font-black text-foreground">
                       {due.id}
                     </h4>
-                    <span className="text-[13px] font-black text-[#0F172A]">
+                    <span className="text-[13px] font-black text-foreground">
                       {due.amount}
                     </span>
                   </div>
@@ -421,7 +421,7 @@ export default function DashboardOverview() {
               </div>
             ))}
           </div>
-          <button className="w-full mt-8 py-4 bg-white border-2 border-[#84CC16] text-[#84CC16] font-black text-sm rounded-2xl hover:bg-[#84CC16] hover:text-white transition-all shadow-sm">
+          <button className="w-full mt-8 py-4  border-2 border-[#84CC16] text-[#84CC16] font-black text-sm rounded-2xl hover:bg-[#84CC16] hover:text-white transition-all shadow-sm">
             View Full Calendar
           </button>
         </motion.div>
@@ -430,7 +430,7 @@ export default function DashboardOverview() {
       {/* Recent Inventory */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-black text-[#0F172A]">
+          <h2 className="text-2xl font-black text-foreground">
             Recent Inventory
           </h2>
           <button className="text-sm font-black text-[#3B82F6] hover:underline">
@@ -444,7 +444,7 @@ export default function DashboardOverview() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 + i * 0.1 }}
-              className="bg-white rounded-[32px] overflow-hidden border border-gray-100 shadow-sm group hover:shadow-xl transition-all"
+              className="bg-card rounded-[32px] overflow-hidden border border-border shadow-sm group hover:shadow-xl transition-all"
             >
               <div className="relative h-56 w-full overflow-hidden">
                 <Image
@@ -458,7 +458,7 @@ export default function DashboardOverview() {
                 </div>
               </div>
               <div className="p-6 space-y-4">
-                <h3 className="text-[15px] font-black text-[#0F172A] line-clamp-1">
+                <h3 className="text-[15px] font-black text-foreground line-clamp-1">
                   {item.name}
                 </h3>
                 <div className="flex justify-between items-end">
@@ -474,7 +474,7 @@ export default function DashboardOverview() {
                     <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-wider">
                       In Stock
                     </p>
-                    <p className="text-sm font-black text-[#0F172A]">
+                    <p className="text-sm font-black text-foreground">
                       {item.stock}
                     </p>
                   </div>

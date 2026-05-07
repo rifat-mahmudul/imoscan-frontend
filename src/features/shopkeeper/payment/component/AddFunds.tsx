@@ -112,10 +112,10 @@ export default function AddFunds() {
   };
 
   return (
-    <div className="p-4 md:p-10 max-w-[1400px] mx-auto space-y-12 font-poppins">
+    <div className="p-4 md:p-10  mx-auto space-y-12 font-poppins">
       {/* Header Section */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-black text-[#0F172A] tracking-tight">
+        <h1 className="text-3xl font-black text-foreground tracking-tight">
           Pricing Plan
         </h1>
         <p className="text-[#64748B] font-medium">
