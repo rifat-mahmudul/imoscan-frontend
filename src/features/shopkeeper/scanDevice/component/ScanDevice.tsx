@@ -434,17 +434,17 @@ export default function ScanDevice() {
                     Risk Meter
                   </span>
                   <span className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest">
-                    {scanResult.riskMeter.score}/100
+                    {scanResult.riskMeter?.score}/100
                   </span>
                 </div>
                 <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-black rounded-full transition-all duration-1000"
-                    style={{ width: `${scanResult.riskMeter.score}%` }}
+                    style={{ width: `${scanResult.riskMeter?.score}%` }}
                   />
                 </div>
                 <p className="text-sm font-bold text-[#0F172A]">
-                  {scanResult.riskMeter.label}
+                  {scanResult.riskMeter?.label}
                 </p>
               </div>
               <div className="text-right">
@@ -452,7 +452,7 @@ export default function ScanDevice() {
                   Market Value
                 </p>
                 <p className="text-3xl font-black text-[#0F172A]">
-                  ${scanResult.marketValue.amount.toFixed(2)}
+                  ${scanResult.marketValue?.amount.toFixed(2)}
                 </p>
               </div>
             </div>
@@ -470,12 +470,12 @@ export default function ScanDevice() {
                 <Zap size={18} className="text-[#0F172A]" />
               </div>
               <span className="text-[12px] font-black text-[#0F172A] uppercase tracking-widest">
-                {scanResult.aiInsight.title}
+                {scanResult.aiInsight?.title}
               </span>
             </div>
             <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex-1">
               <p className="text-[#64748B] text-[13px] font-semibold leading-relaxed italic">
-                &quot;{scanResult.aiInsight.message}&quot;
+                &quot;{scanResult.aiInsight?.message}&quot;
               </p>
             </div>
           </motion.div>
@@ -485,7 +485,7 @@ export default function ScanDevice() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
             {(
-              Object.values(scanResult.checks) as Array<{
+              Object?.values(scanResult.checks) as Array<{
                 title: string;
                 description: string;
                 status: string;
@@ -502,28 +502,28 @@ export default function ScanDevice() {
                   <div
                     className={`p-3 rounded-xl ${check.status === "passed" ? "bg-[#84CC16]/10 text-[#84CC16]" : "bg-red-50 text-red-500"}`}
                   >
-                    {check.title === "Global Blacklist" && (
+                    {check?.title === "Global Blacklist" && (
                       <ShieldCheck size={20} />
                     )}
-                    {check.title === "Carrier Financing" && (
+                    {check?.title === "Carrier Financing" && (
                       <Wallet size={20} />
                     )}
-                    {check.title === "Hardware Lock" && <Lock size={20} />}
-                    {check.title === "Part Authenticity" && <Cpu size={20} />}
+                    {check?.title === "Hardware Lock" && <Lock size={20} />}
+                    {check?.title === "Part Authenticity" && <Cpu size={20} />}
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-[#0F172A]">
-                      {check.title}
+                      {check?.title}
                     </h3>
                     <p className="text-[12px] font-medium text-[#64748B]">
-                      {check.description}
+                      {check?.description}
                     </p>
                   </div>
                 </div>
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center ${check.status === "passed" ? "bg-[#84CC16] text-white" : "bg-red-500 text-white"}`}
                 >
-                  {check.status === "passed" ? (
+                  {check?.status === "passed" ? (
                     <Check size={14} strokeWidth={4} />
                   ) : (
                     <AlertTriangle size={14} strokeWidth={4} />
