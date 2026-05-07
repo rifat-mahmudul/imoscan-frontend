@@ -65,7 +65,7 @@ export default function RepairRequestsTable() {
     {
       label: "Total Requests",
       value: historyData?.meta?.total || repairRequests.length,
-      icon: <Package className="text-[#16A34A]" />,
+      icon: <Package className="text-[#16A34A] dark:text-yellow-500" />,
       bg: "bg-[#DCFCE7]/40",
     },
     {
@@ -89,7 +89,7 @@ export default function RepairRequestsTable() {
     {
       label: "Completed",
       value: repairRequests.filter((r) => r.status === "completed").length,
-      icon: <CheckCircle2 className="text-[#2563EB]" />,
+      icon: <CheckCircle2 className="text-[#2563EB] dark:text-green-500" />,
       bg: "bg-[#DBEAFE]/40",
     },
   ];

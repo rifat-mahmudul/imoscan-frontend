@@ -47,7 +47,7 @@ export default function RepairRequest() {
 
   return (
     <div className="px-4 py-8 md:px-8 lg:px-12 font-poppins min-h-screen bg-background">
-      <div className="mx-auto max-w-[1200px] space-y-8">
+      <div className="mx-auto  space-y-8">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>

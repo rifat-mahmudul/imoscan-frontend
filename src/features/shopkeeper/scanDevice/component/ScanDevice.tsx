@@ -671,12 +671,12 @@ export default function ScanDevice() {
   }
 
   return (
-    <div className="min-h-full p-4 md:p-10 flex flex-col items-center justify-center space-y-12 mx-auto font-poppins">
-      <div className="text-center space-y-4">
+    <div className="min-h-full p-4 md:p-10 space-y-12 mx-auto font-poppins">
+      <div className=" space-y-4">
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-3xl md:text-5xl font-black text-[#0F172A] tracking-tight"
+          className="text-3xl md:text-5xl font-black text-foreground tracking-tight"
         >
           Scan Device
         </motion.h1>
@@ -684,7 +684,7 @@ export default function ScanDevice() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="text-[#64748B] text-lg font-medium max-w-md mx-auto leading-relaxed"
+          className="text-muted-foreground text-lg font-medium   leading-relaxed"
         >
           Enter your device details for a comprehensive security and diagnostic
           analysis.
@@ -695,17 +695,17 @@ export default function ScanDevice() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="w-full bg-white max-w-4xl rounded-[40px] p-6 md:p-12 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.05)] border border"
+        className="w-full bg-card  rounded-[40px] p-6 md:p-12 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.05)] border border-border"
       >
         <div className="space-y-8">
           <div className="relative">
-            <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block ml-4">
+            <span className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-3 block ml-4">
               Select Diagnostic Service
             </span>
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               disabled={isScanning}
-              className="w-full flex items-center justify-between px-8 py-5 rounded-3xl border border-gray-100 bg-[#FBFBFB] hover:bg-white hover:border-[#84CC16]/30 transition-all cursor-pointer group disabled:opacity-50"
+              className="w-full flex items-center justify-between px-8 py-5 rounded-3xl border dark:bg-white hover:border-[#84CC16]/30 transition-all cursor-pointer group disabled:opacity-50"
             >
               <div className="flex flex-col items-start">
                 <span className="text-lg font-black text-[#0F172A] group-hover:text-[#84CC16] transition-colors">

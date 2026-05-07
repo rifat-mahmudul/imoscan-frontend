@@ -399,7 +399,7 @@ export default function RepairHistoryDetails({ id }: { id: string }) {
   return (
     <>
       <div className="px-4 py-8 md:px-8 lg:px-12 font-poppins min-h-screen bg-background">
-        <div className="mx-auto max-w-[1200px] space-y-6">
+        <div className="mx-auto space-y-6">
           {/* Header Section */}
           <div className="flex flex-wrap items-center justify-between gap-6 rounded-3xl border border-border bg-card p-6 shadow-sm">
             <div className="flex items-center gap-6">
@@ -481,7 +481,7 @@ export default function RepairHistoryDetails({ id }: { id: string }) {
                   Live progress of your repair request
                 </p>
 
-                <div className="relative border-l-2 border-border ml-4 space-y-8 pb-4">
+                <div className="relative border-l-2 border-border dark:border-yellow-400 ml-4 space-y-8 pb-4">
                   {timelineSteps.map((step, index) => {
                     const isCompleted = index < activeStepIndex;
                     const isActive = index === activeStepIndex;
