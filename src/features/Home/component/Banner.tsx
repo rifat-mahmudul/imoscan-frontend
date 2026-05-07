@@ -88,9 +88,21 @@ export default function Banner() {
   };
 
   const quickChecks = [
-    "iPhone all in one / best fee",
-    "Samsung full report / best before buy",
-    "Mac full check / best before buy",
+    {
+      label: "iPhone all in one / best fee",
+      keyword: "apple",
+      imei: "356782084912443",
+    },
+    {
+      label: "Samsung full report / best before buy",
+      keyword: "samsung",
+      imei: "356782084912443",
+    },
+    {
+      label: "Mac full check / best before buy",
+      keyword: "mac",
+      imei: "356782084912443",
+    },
   ];
 
   return (
@@ -341,11 +353,12 @@ export default function Banner() {
             <button
               key={i}
               onClick={() => {
-                setImei("356782084912443");
+                setSearchTerm(tag.keyword);
+                setIsDropdownOpen(true);
               }}
-              className="h-[50px] cursor-pointer rounded-full bg-[linear-gradient(166.27deg,rgba(132,204,22,0.2)_5.25%,rgba(91,94,13,0.2)_137.31%)] px-8 text-base font-extrabold leading-none text-white shadow-[0_3px_8px_rgba(136,144,194,0.25),0_7px_21px_rgba(37,44,97,0.2)] transition hover:bg-primary/30 max-md:h-auto max-md:min-h-[44px] max-md:px-5 max-md:text-sm border border-white "
+              className="h-[50px] cursor-pointer rounded-full bg-[linear-gradient(166.27deg,rgba(132,204,22,0.2)_5.25%,rgba(91,94,13,0.2)_137.31%)] px-8 text-base font-extrabold leading-none text-white shadow-[0_3px_8px_rgba(136,144,194,0.25),0_7px_21px_rgba(37,44,97,0.2)] transition hover:bg-primary/30 max-md:h-auto max-md:min-h-[44px] max-md:px-5 max-md:text-sm border border-white"
             >
-              {tag}
+              {tag.label}
             </button>
           ))}
         </motion.div>
