@@ -9,6 +9,7 @@ import ForTheSmartBuyer from "@/features/Home/component/ForTheSmartBuyer";
 import Pricing from "@/features/Home/component/Pricing";
 import Review from "@/features/Home/component/Review";
 import StartChecking from "@/features/Home/component/StartChecking";
+import ComparisonTable from "@/features/Home/component/ComparisonTable";
 
 export default function Home() {
   return (
@@ -23,6 +24,7 @@ export default function Home() {
       <AIPoweredInsights />
       <ForTheSmartBuyer />
       <Pricing />
+      <ComparisonTable />
       <Review />
       <StartChecking />
       <Footer />

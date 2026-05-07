@@ -148,7 +148,7 @@ export default function Pricing() {
 
   return (
     <section className="py-24 bg-background border-t border-border">
-      <div className="mx-auto container px-6 text-center">
+      <div className="mx-auto container text-center">
         {/* Heading */}
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
@@ -170,7 +170,7 @@ export default function Pricing() {
         </motion.p>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch">
           {plans.map((plan: SubscriptionPlan, index: number) => {
             const styles = getPlanStyles(plan.type);
             return (
