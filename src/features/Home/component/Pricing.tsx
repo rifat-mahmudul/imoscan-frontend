@@ -103,7 +103,7 @@ export default function Pricing() {
     switch (type) {
       case "STARTER":
         return {
-          container: "bg-blue-500/10 dark:bg-blue-500/5 border-blue-500/10",
+          container: "bg-[#dbeafe] dark:bg-blue-500/5 border-blue-500/10",
           badge: "bg-background text-blue-500",
           button:
             "bg-white hover:bg-gray-50 border border-[#84CC16] text-[#84CC16]",
@@ -112,7 +112,7 @@ export default function Pricing() {
       case "PAY AS YOU GO":
         return {
           container:
-            "bg-primary/10 dark:bg-primary/5 border-primary/20 border-2 relative",
+            "bg-[#ecfccb] dark:bg-primary/5 border-primary/20 border-2 relative",
           badge:
             "bg-blue-500 text-white absolute -top-5 left-1/2 -translate-x-1/2 px-6 py-2 shadow-lg shadow-blue-500/20",
           button:
@@ -121,8 +121,7 @@ export default function Pricing() {
         };
       case "DIAMOND":
         return {
-          container:
-            "bg-purple-500/10 dark:bg-purple-500/5 border-purple-500/10",
+          container: "bg-[#e6eefb] dark:bg-purple-500/5 border-purple-500/10",
           badge: "bg-background text-purple-600",
           button:
             "bg-background hover:bg-muted text-primary border border-primary",
@@ -131,8 +130,8 @@ export default function Pricing() {
       case "ENTERPRISE":
         return {
           container:
-            "bg-slate-900 dark:bg-slate-800 text-white border-slate-700",
-          badge: "bg-slate-800 text-white",
+            "bg-[#ede9fe] dark:bg-slate-800 text-white border-slate-700",
+          badge: "bg-slate-800 ",
           button: "bg-white text-slate-900 hover:bg-slate-100",
           iconColor: "text-blue-400",
           isDark: true,
@@ -149,7 +148,7 @@ export default function Pricing() {
 
   return (
     <section className="py-24 bg-background border-t border-border">
-      <div className="mx-auto container px-6 text-center">
+      <div className="mx-auto container text-center">
         {/* Heading */}
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
@@ -171,7 +170,7 @@ export default function Pricing() {
         </motion.p>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch">
           {plans.map((plan: SubscriptionPlan, index: number) => {
             const styles = getPlanStyles(plan.type);
             return (
@@ -201,21 +200,15 @@ export default function Pricing() {
                 )}
 
                 <div className="flex flex-col gap-1 mb-8">
-                  <h3
-                    className={`text-2xl font-black ${styles.isDark ? "text-white" : "text-foreground"}`}
-                  >
+                  <h3 className={`text-2xl font-black text-foreground`}>
                     {plan.name}
                   </h3>
                   <div className="flex items-baseline gap-1">
-                    <span
-                      className={`text-3xl font-black ${styles.isDark ? "text-white" : "text-foreground"}`}
-                    >
+                    <span className={`text-3xl font-black  text-foreground`}>
                       {plan.priceLabel}
                     </span>
                   </div>
-                  <p
-                    className={`text-sm ${styles.isDark ? "text-slate-400" : "text-muted-foreground"} mt-2`}
-                  >
+                  <p className={`text-sm text-foreground mt-2`}>
                     {plan.description}
                   </p>
                 </div>
@@ -244,9 +237,7 @@ export default function Pricing() {
                   <div className="w-full bg-background/50 dark:bg-white/5 rounded-2xl p-4 flex items-center justify-between mb-8 border border-purple-100/20 shadow-sm">
                     <div className="flex items-center gap-2">
                       <Gem className="w-5 h-5 text-blue-500" />
-                      <span
-                        className={`text-sm font-bold ${styles.isDark ? "text-white" : "text-foreground"}`}
-                      >
+                      <span className={`text-sm font-bold text-foreground`}>
                         Diamond Offer
                       </span>
                     </div>
@@ -340,7 +331,7 @@ function FeatureItem({
         className={`text-sm font-semibold ${
           active
             ? isDark
-              ? "text-slate-200"
+              ? "text-foreground"
               : "text-foreground"
             : "text-muted-foreground line-through decoration-2 opacity-50"
         }`}

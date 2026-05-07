@@ -79,7 +79,7 @@ export default function Navbar() {
         <div className="flex min-w-0 items-center gap-1.5 sm:gap-2 md:gap-4">
           {status === "authenticated" && (
             <Badge variant={"outline"}>
-              <span>Credits: {profileData?.data?.balance}</span>
+              <span>Credits: {profileData?.data?.balance.toFixed(2)}</span>
             </Badge>
           )}
 
