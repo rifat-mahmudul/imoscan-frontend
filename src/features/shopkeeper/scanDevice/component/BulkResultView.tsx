@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { motion } from "framer-motion";
@@ -11,9 +12,19 @@ import {
   XCircle,
   ChevronDown,
   ArrowLeft,
+  Smartphone,
+  Sparkles,
+  ShieldCheck,
+  Wallet,
+  Lock,
+  Cpu,
+  Check,
+  AlertTriangle,
+  Gauge,
+  Database,
+  RadioTower,
 } from "lucide-react";
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { ImeiReportDetails } from "./ImeiReportDetails";
 import { CertificatePDF } from "./CertificatePDF";
 import {
   BatchImeiResponse,
@@ -30,6 +41,50 @@ interface BulkResultViewProps {
   ) => Promise<void>;
   isDownloading: boolean;
 }
+
+// Helper function to get status color
+const getStatusColor = (status: string) => {
+  switch (status?.toLowerCase()) {
+    case "clean":
+      return "bg-[#84CC16] shadow-lime-500/20";
+    case "warning":
+      return "bg-orange-500 shadow-orange-500/20";
+    default:
+      return "bg-[#3B82F6] shadow-blue-500/20";
+  }
+};
+
+// Helper function to get risk color class
+const getRiskColorClass = (score: number) => {
+  if (score <= 25) return "text-emerald-400 bg-emerald-500/10";
+  if (score <= 60) return "text-amber-400 bg-amber-500/10";
+  return "text-red-400 bg-red-500/10";
+};
+
+// Helper function to get check icon
+const getCheckIcon = (title?: string) => {
+  switch (title) {
+    case "Global Blacklist":
+      return ShieldCheck;
+    case "Carrier Financing":
+      return Wallet;
+    case "Hardware Lock":
+      return Lock;
+    case "Part Authenticity":
+      return Cpu;
+    default:
+      return ShieldCheck;
+  }
+};
+
+// Helper function to get checks array
+const getChecksArray = (result: any) => {
+  if (!result?.checks) return [];
+  if (typeof result.checks === "object" && !Array.isArray(result.checks)) {
+    return Object.values(result.checks);
+  }
+  return Array.isArray(result.checks) ? result.checks : [];
+};
 
 export const BulkResultView = ({
   batchResult,
@@ -59,6 +114,7 @@ export const BulkResultView = ({
     [batchRows, selectedBatchIndex],
   );
 
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -107,8 +163,13 @@ export const BulkResultView = ({
 
   if (!batchResult) return null;
 
+  const currentData = selectedBatchRow?.data;
+  const checksArray = currentData ? getChecksArray(currentData) : [];
+  const riskScore = currentData?.riskMeter?.score || 0;
+  const riskColorClass = getRiskColorClass(riskScore);
+
   return (
-    <div className="w-full space-y-6 pb-10">
+    <div className="w-full space-y-6 pb-10 font-poppins">
       {/* Back Button */}
       <button
         onClick={() => {
@@ -124,6 +185,7 @@ export const BulkResultView = ({
         Scan another device
       </button>
 
+      {/* Header Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -280,81 +342,267 @@ export const BulkResultView = ({
         </div>
       </motion.div>
 
-      {/* Selected Result Details */}
-      <motion.div
-        key={selectedBatchIndex}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        {selectedBatchRow?.ok && selectedBatchRow.data ? (
-          <div className="space-y-4">
-            <div className="flex justify-end">
-              <button
-                onClick={handleDownloadSelectedBulkCertificate}
-                disabled={isDownloading}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-black text-[#0F172A] transition hover:bg-gray-50 disabled:cursor-wait disabled:opacity-70"
-              >
-                {isDownloading ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Download size={16} />
+      {/* Selected Result Details Card - New Design */}
+      {selectedBatchRow?.ok && selectedBatchRow.data ? (
+        <motion.div
+          key={selectedBatchIndex}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-[32px] border border-gray-100 overflow-hidden shadow-sm"
+        >
+          {/* Download Button */}
+          <div className="flex justify-end p-6 pb-0">
+            <button
+              onClick={handleDownloadSelectedBulkCertificate}
+              disabled={isDownloading}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-black text-[#0F172A] transition hover:bg-gray-50 disabled:cursor-wait disabled:opacity-70 mb-5"
+            >
+              {isDownloading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Download size={16} />
+              )}
+              Download Certificate
+            </button>
+          </div>
+
+          {/* Header Section */}
+          <div className="p-6 pt-0">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-[#84CC16]/10 flex items-center justify-center">
+                  <Smartphone size={28} className="text-[#84CC16]" />
+                </div>
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-black text-[#0F172A] mb-1">
+                    {selectedBatchRow.data.deviceName || "Unknown Device"}
+                  </h1>
+                  <p className="text-[#64748B] font-mono text-sm font-semibold">
+                    IMEI: {selectedBatchRow.data.imei}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                <span
+                  className={`px-4 py-2 text-white text-xs font-black rounded-full uppercase tracking-wider shadow-lg ${getStatusColor(
+                    selectedBatchRow.data.deviceStatus || "",
+                  )}`}
+                >
+                  {selectedBatchRow.data.deviceStatus || "Unknown"}
+                </span>
+                {selectedBatchRow.provider && (
+                  <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+                    {selectedBatchRow.provider}
+                  </span>
                 )}
-                Download This Certificate
-              </button>
+              </div>
             </div>
-            <ImeiReportDetails
-              result={selectedBatchRow.data}
-              caption="Provider data is used as the primary source and organized into a clean report."
-              meta={{
-                provider: selectedBatchRow.provider,
-                serviceId: selectedBatchRow.serviceId,
-                cached: selectedBatchRow.cached,
-                message: selectedBatchRow.message,
-                rowNumber: selectedBatchRow.rowNumber,
-                totalRows: batchRows.length,
-              }}
-            />
+
+            {/* Risk Meter & Market Value */}
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <div className="flex justify-between items-end">
+                  <span className="text-[10px] font-black text-[#94A3B8] uppercase tracking-wider">
+                    Risk Meter
+                  </span>
+                  <span
+                    className={`text-xs font-black ${riskColorClass} px-2 py-1 rounded-full`}
+                  >
+                    {riskScore}/100
+                  </span>
+                </div>
+                <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 via-amber-500 to-red-500 rounded-full transition-all duration-1000"
+                    style={{ width: `${riskScore}%` }}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Gauge size={14} className="text-gray-400" />
+                  <p className="text-sm font-bold text-[#0F172A]">
+                    {selectedBatchRow.data.riskMeter?.label || "Risk Unknown"}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-wider mb-1">
+                  Market Value
+                </p>
+                <p className="text-3xl font-black text-[#0F172A]">
+                  $
+                  {selectedBatchRow.data.marketValue?.amount?.toFixed(2) ||
+                    "0.00"}
+                  <span className="text-sm font-medium text-gray-400 ml-1">
+                    {selectedBatchRow.data.marketValue?.currency || "USD"}
+                  </span>
+                </p>
+              </div>
+            </div>
           </div>
-        ) : selectedBatchRow ? (
-          <div className="rounded-[32px] border border-red-100 bg-red-50 p-8 shadow-sm">
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-red-500">
-              Failed Result
+
+          {/* AI Insight Card */}
+          <div className="mx-6 mb-6 p-5 bg-gradient-to-r from-[#F8FAFC] to-white rounded-2xl border border-gray-100">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-1.5 bg-[#84CC16]/10 rounded-lg">
+                <Sparkles size={14} className="text-[#84CC16]" />
+              </div>
+              <span className="text-[10px] font-black text-[#84CC16] uppercase tracking-wider">
+                {selectedBatchRow.data.aiInsight?.title || "AI INSIGHT"}
+              </span>
+            </div>
+            <p className="text-sm text-gray-600 italic leading-relaxed">
+              &quot;
+              {selectedBatchRow.data.aiInsight?.message ||
+                "No insight available"}
+              &quot;
             </p>
-            <h3 className="mt-2 text-2xl font-black text-red-700">
-              Row {selectedBatchRow.rowNumber} could not be processed
+          </div>
+
+          {/* Checks Grid */}
+          <div className="px-6 pb-6">
+            <h3 className="text-sm font-black text-[#0F172A] mb-4">
+              Security Checks
             </h3>
-            <p className="mt-3 text-sm font-semibold text-red-600">
-              {selectedBatchRow.message}
-            </p>
-            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="rounded-2xl border border-red-100 bg-white px-4 py-4">
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-400">
-                  Row
-                </p>
-                <p className="mt-2 text-sm font-bold text-slate-900">
-                  {selectedBatchRow.rowNumber}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-red-100 bg-white px-4 py-4">
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-400">
-                  IMEI
-                </p>
-                <p className="mt-2 text-sm font-bold text-slate-900 break-all">
-                  {selectedBatchRow.imei}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-red-100 bg-white px-4 py-4">
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-400">
-                  Service ID
-                </p>
-                <p className="mt-2 text-sm font-bold text-slate-900">
-                  {selectedBatchRow.serviceId ?? "N/A"}
-                </p>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {checksArray.map((check: any, idx: number) => {
+                const Icon = getCheckIcon(check?.title);
+                const statusClass =
+                  check.status === "passed"
+                    ? "bg-emerald-50 text-emerald-500"
+                    : check.status === "warning"
+                      ? "bg-amber-50 text-amber-500"
+                      : "bg-red-50 text-red-500";
+                return (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${statusClass}`}>
+                        <Icon size={16} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-gray-700">
+                          {check?.title || "Check"}
+                        </p>
+                        <p className="text-[11px] text-gray-500 mt-0.5 max-w-[200px]">
+                          {check?.description || "No description"}
+                        </p>
+                      </div>
+                    </div>
+                    <div
+                      className={`w-7 h-7 rounded-full flex items-center justify-center ${
+                        check.status === "passed"
+                          ? "bg-emerald-500 text-white"
+                          : check.status === "warning"
+                            ? "bg-amber-500 text-white"
+                            : "bg-red-500 text-white"
+                      }`}
+                    >
+                      {check.status === "passed" ? (
+                        <Check size={14} strokeWidth={3} />
+                      ) : (
+                        <AlertTriangle size={14} strokeWidth={3} />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        ) : null}
-      </motion.div>
+
+          {/* Metadata Footer */}
+          <div className="p-6 bg-gray-50/50 border-t border-gray-100">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+              <div>
+                <span className="text-gray-400 block mb-1 text-[10px] font-black uppercase tracking-wider">
+                  Provider
+                </span>
+                <span className="font-bold text-gray-700 text-sm">
+                  {selectedBatchRow.provider || "API"}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-400 block mb-1 text-[10px] font-black uppercase tracking-wider">
+                  Service ID
+                </span>
+                <span className="font-bold text-gray-700 text-sm">
+                  {selectedBatchRow.serviceId ?? "N/A"}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-400 block mb-1 text-[10px] font-black uppercase tracking-wider">
+                  Row Number
+                </span>
+                <span className="font-bold text-gray-700 text-sm">
+                  {selectedBatchRow.rowNumber} / {batchRows.length}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-400 block mb-1 text-[10px] font-black uppercase tracking-wider">
+                  Status
+                </span>
+                <span
+                  className={`font-bold text-sm ${selectedBatchRow.ok ? "text-emerald-600" : "text-red-600"}`}
+                >
+                  {selectedBatchRow.ok ? "Success" : "Failed"}
+                </span>
+              </div>
+            </div>
+            {selectedBatchRow.message && (
+              <div className="mt-4 pt-3 border-t border-gray-100">
+                <p className="text-[11px] text-gray-500">
+                  <span className="font-black">Message:</span>{" "}
+                  {selectedBatchRow.message}
+                </p>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      ) : selectedBatchRow ? (
+        <motion.div
+          key={selectedBatchIndex}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-[32px] border border-red-100 bg-red-50 p-8 shadow-sm"
+        >
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-red-500">
+            Failed Result
+          </p>
+          <h3 className="mt-2 text-2xl font-black text-red-700">
+            Row {selectedBatchRow.rowNumber} could not be processed
+          </h3>
+          <p className="mt-3 text-sm font-semibold text-red-600">
+            {selectedBatchRow.message}
+          </p>
+          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="rounded-2xl border border-red-100 bg-white px-4 py-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-400">
+                Row
+              </p>
+              <p className="mt-2 text-sm font-bold text-slate-900">
+                {selectedBatchRow.rowNumber}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-red-100 bg-white px-4 py-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-400">
+                IMEI
+              </p>
+              <p className="mt-2 text-sm font-bold text-slate-900 break-all">
+                {selectedBatchRow.imei}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-red-100 bg-white px-4 py-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-400">
+                Service ID
+              </p>
+              <p className="mt-2 text-sm font-bold text-slate-900">
+                {selectedBatchRow.serviceId ?? "N/A"}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      ) : null}
 
       {/* Hidden Certificate Containers */}
       <div
