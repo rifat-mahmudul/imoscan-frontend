@@ -22,7 +22,6 @@ export interface Shopkeeper {
 }
 
 export interface RepairRequestPayload {
-  shopkeeperId: string;
   firstName: string;
   email: string;
   deviceModel: string;

@@ -22,7 +22,6 @@ export const createRepairRequest = async (
 ): Promise<ApiResponse<RepairRequest>> => {
   const formData = new FormData();
 
-  formData.append("shopkeeperId", payload.shopkeeperId);
   formData.append("firstName", payload.firstName);
   formData.append("email", payload.email);
   formData.append("deviceModel", payload.deviceModel);
@@ -144,7 +143,6 @@ export const resentRepairRequestNote = async ({
 export const updateRepairReSentQuoteStatus = async ({
   id,
   status,
-  userNotesId,
 }: {
   id: string;
   status: "approved" | "rejected";
@@ -154,7 +152,6 @@ export const updateRepairReSentQuoteStatus = async ({
     `/repair-requests/quote-status-shopkeeper/${id}`,
     {
       status,
-      userNotesId,
     },
   );
   return response.data;

@@ -15,6 +15,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  CheckCircle2,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -24,6 +25,39 @@ import {
   useUpdateResentRepairQuoteStatus,
 } from "@/features/customer/repairRequest/hooks/useRepairRequest";
 import { Button } from "@/components/ui/button";
+
+const timelineSteps = [
+  {
+    id: "request_submitted",
+    label: "Request Submitted",
+    description: "Your request was received and logged",
+    statuses: ["request_submitted", "submitted"],
+  },
+  {
+    id: "in_review",
+    label: "Under Review",
+    description: "Technician is diagnosing the device",
+    statuses: ["in_review"],
+  },
+  {
+    id: "quote_sent",
+    label: "Quote Sent",
+    description: "Quote will appear once review is complete",
+    statuses: ["quote_sent", "quote_rejected", "rejected"],
+  },
+  {
+    id: "repair_in_progress",
+    label: "Repair in Progress",
+    description: "Hardware components will be repaired",
+    statuses: ["repair_in_progress", "quote_accepted", "approved"],
+  },
+  {
+    id: "completed",
+    label: "Completed",
+    description: "Repair will be finalized and closed",
+    statuses: ["completed"],
+  },
+];
 
 export default function RepairRequestDetails({ id }: { id: string }) {
   const { data: detailsData, isLoading } = useRepairRequestDetails(id);
@@ -41,7 +75,7 @@ export default function RepairRequestDetails({ id }: { id: string }) {
 
   if (isLoading) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
+      <div className="flex h-[80vh] bg-background items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
@@ -57,15 +91,11 @@ export default function RepairRequestDetails({ id }: { id: string }) {
     );
   }
 
-  // Quote info
-  const quoteNotes = request?.userNotes?.filter((n) => n.cost) || [];
+  const currentStatus = request.status;
 
-  // latest ta nibo (last item)
-  const latestQuote =
-    quoteNotes.length > 0 ? quoteNotes[quoteNotes.length - 1] : null;
-
-  // status check
-  const isQuoteAvailable = request?.status === "quote-resent" && latestQuote;
+  const activeStepIndex = timelineSteps.findIndex((step) =>
+    step.statuses.includes(currentStatus),
+  );
 
   const handleStatusUpdate = (status: string) => {
     updateStatus.mutate({ id, status });
@@ -134,7 +164,7 @@ export default function RepairRequestDetails({ id }: { id: string }) {
                       Request ID
                     </p>
                     <p className="text-sm font-black text-foreground">
-                      #REQ-{request._id.slice(-8).toUpperCase()}-IMS
+                      #{request._id.toUpperCase()}
                     </p>
                   </div>
                   <div>
@@ -161,8 +191,78 @@ export default function RepairRequestDetails({ id }: { id: string }) {
                 </div>
               </div>
 
+              <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
+                <h3 className="text-xl font-black text-foreground mb-2">
+                  Repair Timeline
+                </h3>
+                <p className="text-sm font-medium text-muted-foreground mb-8">
+                  Live progress of your repair request
+                </p>
+
+                <div className="relative border-l-2 border-border dark:border-yellow-400 ml-4 space-y-8 pb-4">
+                  {timelineSteps.map((step, index) => {
+                    const isCompleted = index < activeStepIndex;
+                    const isActive = index === activeStepIndex;
+                    const isPending = index > activeStepIndex;
+
+                    let dotColor = "bg-muted border-border";
+                    let textColor = "text-muted-foreground";
+
+                    if (isCompleted) {
+                      dotColor =
+                        "bg-primary border-primary text-primary-foreground";
+                      textColor = "text-foreground";
+                    } else if (isActive) {
+                      dotColor =
+                        "bg-blue-500 border-blue-500 text-white shadow-[0_0_0_4px_rgba(59,130,246,0.2)]";
+                      textColor = "text-foreground";
+                    }
+
+                    return (
+                      <div key={step.id} className="relative pl-8">
+                        <div
+                          className={`absolute -left-[11px] top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 ${dotColor}`}
+                        >
+                          {isCompleted && <CheckCircle2 size={12} />}
+                          {isActive && (
+                            <div className="h-2 w-2 rounded-full bg-white" />
+                          )}
+                        </div>
+
+                        <div>
+                          <div className="flex items-center gap-3">
+                            <h4 className={`text-base font-bold ${textColor}`}>
+                              {step.label}
+                            </h4>
+                            {isActive && (
+                              <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 uppercase tracking-wider">
+                                Active
+                              </span>
+                            )}
+                            {isPending && (
+                              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                Pending
+                              </span>
+                            )}
+                            {step.id === "quote_sent" &&
+                              currentStatus === "quote_sent" && (
+                                <span className="rounded-full bg-yellow-100 px-2.5 py-0.5 text-[10px] font-bold text-yellow-700 uppercase tracking-wider">
+                                  Awaiting Approval
+                                </span>
+                              )}
+                          </div>
+                          <p className="text-sm font-medium text-muted-foreground mt-1">
+                            {step.description}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Issue Description Card */}
-              <div className="bg-card border border-border rounded-[32px] p-8 shadow-sm space-y-4">
+              {/* <div className="bg-card border border-border rounded-[32px] p-8 shadow-sm space-y-4">
                 <h3 className="text-xl font-black text-foreground">
                   Issue Description
                 </h3>
@@ -171,7 +271,7 @@ export default function RepairRequestDetails({ id }: { id: string }) {
                     {request.description}
                   </p>
                 </div>
-              </div>
+              </div> */}
 
               {/* Customer Details Card */}
               <div className="bg-card border border-border rounded-[32px] p-8 shadow-sm space-y-6">
@@ -192,7 +292,7 @@ export default function RepairRequestDetails({ id }: { id: string }) {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  {/* <div className="flex items-center gap-4">
                     <div className="w-11 h-11 bg-surface rounded-xl flex items-center justify-center text-muted-foreground">
                       <Phone size={18} />
                     </div>
@@ -206,7 +306,7 @@ export default function RepairRequestDetails({ id }: { id: string }) {
                           : "+92 300 1234567"}
                       </p>
                     </div>
-                  </div>
+                  </div> */}
                   <div className="flex items-center gap-4">
                     <div className="w-11 h-11 bg-surface rounded-xl flex items-center justify-center text-muted-foreground">
                       <Mail size={18} />
@@ -220,7 +320,7 @@ export default function RepairRequestDetails({ id }: { id: string }) {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  {/* <div className="flex items-center gap-4">
                     <div className="w-11 h-11 bg-surface rounded-xl flex items-center justify-center text-muted-foreground">
                       <MapPin size={18} />
                     </div>
@@ -234,10 +334,9 @@ export default function RepairRequestDetails({ id }: { id: string }) {
                           : "Lahore, Pakistan"}
                       </p>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
-
               {/* Status Actions Section */}
               {(request.status === "submitted" ||
                 request.status === "request_submitted") && (
@@ -415,6 +514,7 @@ export default function RepairRequestDetails({ id }: { id: string }) {
                         value={noteCost}
                         onChange={(e) => setNoteCost(e.target.value)}
                         placeholder="150"
+                        min={0}
                         className="w-full h-12 pl-10 pr-4 bg-surface border border-border rounded-2xl font-bold text-sm outline-none focus:border-primary transition-colors"
                       />
                     </div>
@@ -432,6 +532,7 @@ export default function RepairRequestDetails({ id }: { id: string }) {
                         value={noteDays}
                         onChange={(e) => setNoteDays(e.target.value)}
                         placeholder="3"
+                        min={0}
                         className="w-full h-12 pl-10 pr-4 bg-surface border border-border rounded-2xl font-bold text-sm outline-none focus:border-primary transition-colors"
                       />
                     </div>
@@ -511,66 +612,72 @@ export default function RepairRequestDetails({ id }: { id: string }) {
               </div>
 
               {/* Approval Required */}
-              {isQuoteAvailable && (
-                <div className="rounded-3xl border border-yellow-200 bg-yellow-50/50 p-6 shadow-sm dark:bg-yellow-900/10 dark:border-yellow-900/50">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-base font-black text-foreground">
-                      Approval Required
-                    </h3>
-                    <span className="rounded-full bg-yellow-100 px-2.5 py-0.5 text-[10px] font-bold text-yellow-700 uppercase tracking-wider dark:bg-yellow-900/50 dark:text-yellow-400">
-                      Pending
-                    </span>
-                  </div>
 
-                  <div className="mb-6">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black text-foreground">
-                        ${latestQuote.cost?.toFixed(2)}
-                      </span>
-                      <span className="text-sm font-bold text-muted-foreground">
-                        quote total
-                      </span>
-                    </div>
-                    <p className="mt-2 text-xs font-medium text-muted-foreground leading-relaxed">
-                      {latestQuote.message}
-                    </p>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={() => {
-                        updateResentQuote.mutate({
-                          id: id!,
-                          status: "rejected",
-                          userNotesId: latestQuote._id,
-                        });
-                      }}
-                      variant="outline"
-                      className="flex-1 rounded-full hover:text-white font-bold h-11"
-                    >
-                      Reject Repair
-                    </Button>
-
-                    <Button
-                      className="flex-1 rounded-full font-bold h-11 bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                      onClick={() =>
-                        updateResentQuote.mutate({
-                          id,
-                          status: "approved",
-                          userNotesId: latestQuote?._id,
-                        })
-                      }
-                      disabled={updateResentQuote.isPending}
-                    >
-                      {updateResentQuote.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        "Approve Repair"
-                      )}
-                    </Button>
-                  </div>
+              <div className="rounded-3xl border border-yellow-200 bg-yellow-50/50 p-6 shadow-sm dark:bg-yellow-900/10 dark:border-yellow-900/50">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-base font-black text-foreground">
+                    Change Repair Status
+                  </h3>
                 </div>
-              )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    onClick={() => {
+                      updateResentQuote.mutate({
+                        id: id!,
+                        status: "rejected",
+                      });
+                    }}
+                    variant="outline"
+                    className="flex-1 rounded-full !bg-[#EF4444] hover:text-white font-bold h-11"
+                  >
+                    Booking
+                  </Button>
+
+                  <Button
+                    onClick={() => {
+                      updateResentQuote.mutate({
+                        id: id!,
+                        status: "rejected",
+                      });
+                    }}
+                    variant="outline"
+                    className="flex-1 rounded-full !bg-[#84CC16] hover:text-white font-bold h-11"
+                  >
+                    Pending
+                  </Button>
+
+                  <Button
+                    onClick={() => {
+                      updateResentQuote.mutate({
+                        id: id!,
+                        status: "rejected",
+                      });
+                    }}
+                    variant="outline"
+                    className="flex-1 rounded-full !bg-[#F59E0B] hover:text-white font-bold h-11"
+                  >
+                    In Progress
+                  </Button>
+
+                  <Button
+                    className="flex-1 rounded-full font-bold h-11 !bg-[#3B82F6] text-primary-foreground shadow-lg shadow-primary/20"
+                    onClick={() =>
+                      updateResentQuote.mutate({
+                        id,
+                        status: "approved",
+                      })
+                    }
+                    disabled={updateResentQuote.isPending}
+                  >
+                    {updateResentQuote.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Completed"
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

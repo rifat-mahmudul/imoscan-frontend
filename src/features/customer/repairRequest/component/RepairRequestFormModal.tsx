@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useMyProfile } from "@/features/shopkeeper/settings/hooks/useSettings";
-import { Loader2, Paperclip } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { useCreateRepairRequest } from "../hooks/useRepairRequest";
 import { Shopkeeper } from "../types/repair-request.types";
@@ -42,12 +42,9 @@ export function RepairRequestFormModal({
     .join(" ")
     .trim();
 
-  // Reset or set initial values when shopkeeper changes or modal opens
   useEffect(() => {
     if (!isOpen || !user) return;
 
-    // Use a small timeout to move setState out of the synchronous render/effect cycle
-    // to satisfy strict linting rules regarding cascading renders.
     const timer = setTimeout(() => {
       if (!isFullNameEdited && fullName !== profileFullName) {
         setFullName(profileFullName);
@@ -71,11 +68,8 @@ export function RepairRequestFormModal({
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!shopkeeper) return;
-
     createRepairRequest.mutate(
       {
-        shopkeeperId: shopkeeper._id,
         firstName: fullName,
         email: email,
         deviceModel,
@@ -99,7 +93,7 @@ export function RepairRequestFormModal({
         <div className="bg-primary/5 p-8 border-b border-border">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black text-foreground">
-              Repair Request for {shopkeeper?.shopName}
+              Repair Request
             </DialogTitle>
             <DialogDescription className="text-muted-foreground font-medium">
               Please provide details about your device and the issue you&apos;re
