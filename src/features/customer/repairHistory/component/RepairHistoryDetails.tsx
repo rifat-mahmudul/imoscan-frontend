@@ -473,6 +473,7 @@ export default function RepairHistoryDetails({ id }: { id: string }) {
             {/* Left Column */}
             <div className="lg:col-span-2 space-y-6">
               {/* Repair Timeline */}
+
               <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
                 <h3 className="text-xl font-black text-foreground mb-2">
                   Repair Timeline
@@ -542,7 +543,6 @@ export default function RepairHistoryDetails({ id }: { id: string }) {
                   })}
                 </div>
               </div>
-
               {/* Shopkeeper Notes */}
               {request.shopkeeperNotes &&
                 request.shopkeeperNotes.length > 0 && (

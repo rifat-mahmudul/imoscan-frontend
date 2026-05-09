@@ -3,31 +3,47 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { Loader2, Package, Clock, Wrench, CheckCircle2 } from "lucide-react";
-import { useShopkeeperRepairRequests } from "@/features/customer/repairRequest/hooks/useRepairRequest";
-import { RepairRequest } from "@/features/customer/repairRequest/types/repair-request.types";
+import { useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { RepairRequestFormModal } from "@/features/customer/repairRequest/component/RepairRequestFormModal";
+
+import { useGetMyRepairRequests } from "@/features/customer/repairRequest/hooks/useRepairRequest";
+
+import {
+  RepairRequest,
+  Shopkeeper,
+} from "@/features/customer/repairRequest/types/repair-request.types";
 
 const getStatusStyles = (status: string) => {
   switch (status) {
     case "submitted":
     case "request_submitted":
-      return "bg-[#FEF9C3] text-[#CA8A04]"; // Pending - Yellow
+      return "bg-[#FEF9C3] text-[#CA8A04]";
+
     case "in_review":
     case "reviewing":
-      return "bg-[#F1F5F9] text-[#64748B]"; // Reviewing - Grey
+      return "bg-[#F1F5F9] text-[#64748B]";
+
     case "quote_sent":
-      return "bg-[#FEF3C7] text-[#D97706]"; // Quote Sent - Orange
+      return "bg-[#FEF3C7] text-[#D97706]";
+
     case "quote_accepted":
     case "approved":
     case "in_progress":
     case "repair_in_progress":
-      return "bg-[#DBEAFE] text-[#2563EB]"; // In Progress - Blue
+      return "bg-[#DBEAFE] text-[#2563EB]";
+
     case "repairing":
-      return "bg-[#F3E8FF] text-[#9333EA]"; // Repairing - Purple
+      return "bg-[#F3E8FF] text-[#9333EA]";
+
     case "completed":
-      return "bg-[#DCFCE7] text-[#16A34A]"; // Completed - Green
+      return "bg-[#DCFCE7] text-[#16A34A]";
+
     case "rejected":
     case "quote_rejected":
-      return "bg-[#FEE2E2] text-[#DC2626]"; // Rejected - Red
+      return "bg-[#FEE2E2] text-[#DC2626]";
+
     default:
       return "bg-gray-100 text-gray-600";
   }
@@ -38,33 +54,45 @@ const getStatusLabel = (status: string) => {
     case "submitted":
     case "request_submitted":
       return "Pending";
+
     case "in_review":
       return "Reviewing";
+
     case "repair_in_progress":
     case "in_progress":
       return "In Progress";
+
     case "repairing":
       return "Repairing";
+
     case "completed":
       return "Completed";
+
     case "approved":
       return "Approved";
+
     case "rejected":
       return "Rejected";
+
     default:
       return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   }
 };
 
 export default function RepairRequestsTable() {
-  const { data: historyData, isLoading } = useShopkeeperRepairRequests();
-  const repairRequests = historyData?.data || [];
+  const { data: myRepairRequestsData, isLoading } = useGetMyRepairRequests();
 
-  // Calculate stats
+  const repairRequests = myRepairRequestsData?.data || [];
+
+  const [selectedShopkeeper, setSelectedShopkeeper] =
+    useState<Shopkeeper | null>(null);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const stats = [
     {
       label: "Total Requests",
-      value: historyData?.meta?.total || repairRequests.length,
+      value: myRepairRequestsData?.meta?.total || repairRequests.length,
       icon: <Package className="text-[#16A34A] dark:text-yellow-500" />,
       bg: "bg-[#DCFCE7]/40",
     },
@@ -96,11 +124,21 @@ export default function RepairRequestsTable() {
 
   return (
     <div className="px-4 py-8 md:px-8 lg:px-10 font-poppins min-h-screen bg-background">
-      <div className="mx-auto  space-y-8">
-        <div>
+      <div className="mx-auto space-y-8">
+        <div className="flex justify-between items-center">
           <h1 className="text-3xl font-black text-foreground tracking-tight">
             Repair Requests
           </h1>
+
+          <Button onClick={() => setIsModalOpen(true)}>
+            Create Repair Request
+          </Button>
+
+          <RepairRequestFormModal
+            shopkeeper={selectedShopkeeper}
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+          />
         </div>
 
         {/* Stats Grid */}
@@ -115,10 +153,12 @@ export default function RepairRequestsTable() {
               >
                 {stat.icon}
               </div>
+
               <div>
                 <p className="text-[28px] font-black text-foreground leading-none mb-1">
                   {stat.value}
                 </p>
+
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                   {stat.label}
                 </p>
@@ -141,6 +181,7 @@ export default function RepairRequestsTable() {
                   <th className="px-8 py-6 text-right">Action</th>
                 </tr>
               </thead>
+
               <tbody className="divide-y divide-border">
                 {isLoading ? (
                   <tr>
@@ -159,9 +200,7 @@ export default function RepairRequestsTable() {
                 ) : (
                   repairRequests.map((request: RepairRequest) => {
                     const customerName =
-                      typeof request.userId === "object"
-                        ? request.userId.firstName
-                        : request.firstName || "Unknown Customer";
+                      request.firstName || "Unknown Customer";
 
                     return (
                       <tr
@@ -171,15 +210,19 @@ export default function RepairRequestsTable() {
                         <td className="px-8 py-6 font-bold text-foreground">
                           {customerName}
                         </td>
+
                         <td className="px-8 py-6 font-bold text-foreground">
                           {request.deviceModel}
                         </td>
+
                         <td className="px-8 py-6 font-medium text-muted-foreground max-w-[240px] truncate">
                           {request.description}
                         </td>
+
                         <td className="px-8 py-6 font-bold text-muted-foreground">
                           {format(new Date(request.createdAt), "MMM dd, yyyy")}
                         </td>
+
                         <td className="px-8 py-6">
                           <span
                             className={`inline-flex items-center rounded-full px-4 py-1.5 text-xs font-black tracking-wide ${getStatusStyles(
@@ -189,6 +232,7 @@ export default function RepairRequestsTable() {
                             {getStatusLabel(request.status)}
                           </span>
                         </td>
+
                         <td className="px-8 py-6 text-right">
                           <Link
                             href={`/shopkeeper/repair-requests/${request._id}`}
