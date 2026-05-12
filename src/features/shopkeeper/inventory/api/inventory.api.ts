@@ -3,6 +3,7 @@ import type {
   CreateInventoryInput,
   UpdateInventoryInput,
   InventoryListResponse,
+  CreateFromBarcodeBulkInput,
 } from "../types";
 
 const BASE = "/inventory";
@@ -91,16 +92,9 @@ export const createFromBarcode = async (input: {
   return response.data;
 };
 
-export const createFromBarcodeBulk = async (file: File) => {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const response = await api.post(
-    `${BASE}/create-from-barcode/bulk`,
-    formData,
-    {
-      headers: { "Content-Type": "multipart/form-data" },
-    },
-  );
+export const createFromBarcodeBulk = async (
+  input: CreateFromBarcodeBulkInput,
+) => {
+  const response = await api.post(`${BASE}/create-from-barcode/bulk`, input);
   return response.data;
 };

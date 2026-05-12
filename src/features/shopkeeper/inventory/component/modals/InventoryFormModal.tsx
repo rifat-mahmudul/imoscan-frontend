@@ -70,6 +70,7 @@ import {
   type CreateInventoryInput,
   type InventoryItem,
   type ScanResultData,
+  type BulkBarcodeItem,
 } from "../../types";
 import {
   useCreateInventory,
@@ -126,6 +127,101 @@ export function InventoryFormModal({
   const { data: session } = useSession();
   const [scanResultModalData, setScanResultModalData] =
     useState<ScanResultData | null>(null);
+
+  const [bulkItems, setBulkItems] = useState<BulkBarcodeItem[]>([
+    {
+      code: "",
+      imeiNumber: "",
+      purchasePrice: 0,
+      quantity: 1,
+      currentState: "new",
+    },
+  ]);
+
+  const addBulkRow = () => {
+    setBulkItems([
+      ...bulkItems,
+      {
+        code: "",
+        imeiNumber: "",
+        purchasePrice: 0,
+        quantity: 1,
+        currentState: "new",
+      },
+    ]);
+  };
+
+  const removeBulkRow = (index: number) => {
+    if (bulkItems.length > 1) {
+      const newItems = [...bulkItems];
+      newItems.splice(index, 1);
+      setBulkItems(newItems);
+    } else {
+      setBulkItems([
+        {
+          code: "",
+          imeiNumber: "",
+          purchasePrice: 0,
+          quantity: 1,
+          currentState: "new",
+        },
+      ]);
+    }
+  };
+
+  const updateBulkItem = (
+    index: number,
+    field: keyof BulkBarcodeItem,
+    value: string | number,
+  ) => {
+    const newItems = [...bulkItems];
+    newItems[index] = { ...newItems[index], [field]: value } as BulkBarcodeItem;
+    setBulkItems(newItems);
+  };
+
+  const handleBulkSubmit = () => {
+    const validItems = bulkItems.filter((item) => item.code.trim() !== "");
+    if (validItems.length === 0) {
+      toast.error("Please enter at least one barcode");
+      return;
+    }
+
+    if ((session?.user as { id: string })?.id) {
+      handleCreateFromBarcodeBulk(
+        {
+          userId: (session?.user as { id: string }).id,
+          barcodes: validItems.map((item) => ({
+            ...item,
+            purchasePrice: Number(item.purchasePrice),
+            quantity: Number(item.quantity) || 1,
+            currentState: "new",
+          })),
+        },
+        {
+          onSuccess: () => {
+            toast.success(`${validItems.length} items added successfully`);
+            setBulkItems([
+              {
+                code: "",
+                imeiNumber: "",
+                purchasePrice: 0,
+                quantity: 1,
+                currentState: "new",
+              },
+            ]);
+            onClose();
+          },
+          // onError: (error: any) => {
+          //   toast.error(
+          //     error?.response?.data?.message || "Failed to add items in bulk",
+          //   );
+          // },
+        },
+      );
+    } else {
+      toast.error("User not authenticated");
+    }
+  };
 
   const isPending =
     isCreating ||
@@ -1499,13 +1595,176 @@ export function InventoryFormModal({
                     value="upload"
                     className="mt-0 border-none p-0 outline-none focus-visible:ring-0"
                   >
-                    <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[32px] bg-slate-50/50 dark:bg-slate-900/30 relative overflow-hidden min-h-[400px]">
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#84CC16]/5 rounded-full blur-[80px] pointer-events-none" />
+                    <div className="flex flex-col py-6 px-4 sm:px-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[32px] bg-slate-50/50 dark:bg-slate-900/30 min-h-[400px]">
+                      <div className="flex items-center justify-between mb-8">
+                        <div>
+                          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                            Bulk Device Entry
+                          </h3>
+                          <p className="text-slate-500 text-sm font-medium dark:text-slate-400">
+                            Add multiple devices at once by entering their
+                            details below.
+                          </p>
+                        </div>
+                        <Button
+                          onClick={addBulkRow}
+                          type="button"
+                          className="bg-[#84CC16] hover:bg-[#76b813] text-white rounded-xl px-6 h-12 font-black uppercase tracking-widest shadow-lg shadow-lime-500/20 transition-all flex items-center gap-2"
+                        >
+                          <Plus size={18} strokeWidth={3} />
+                          <span>Add Row</span>
+                        </Button>
+                      </div>
 
-                      <div className="flex items-center justify-center text-5xl">
-                        <p className="text-slate-500">
-                          Comeing soon................
-                        </p>
+                      <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                        {bulkItems.map((item, index) => (
+                          <div
+                            key={index}
+                            className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-12 gap-4 p-4 bg-white dark:bg-slate-900 rounded-[24px] border border-slate-100 dark:border-slate-800 shadow-sm relative group animate-in fade-in slide-in-from-top-2 duration-300"
+                          >
+                            <div className="lg:col-span-4 space-y-1.5">
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 dark:text-slate-500">
+                                Barcode / Code{" "}
+                                <span className="text-red-500">*</span>
+                              </label>
+                              <div className="relative">
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                                  <Barcode className="w-4 h-4 text-slate-400" />
+                                </div>
+                                <input
+                                  type="text"
+                                  placeholder="Scan or type..."
+                                  className="w-full pl-10 pr-4 bg-slate-50/50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl h-[48px] font-bold text-sm outline-none focus:ring-2 focus:ring-[#84CC16]/20 transition-all dark:text-white"
+                                  value={item.code}
+                                  onChange={(e) =>
+                                    updateBulkItem(
+                                      index,
+                                      "code",
+                                      e.target.value,
+                                    )
+                                  }
+                                />
+                              </div>
+                            </div>
+
+                            <div className="lg:col-span-3 space-y-1.5">
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 dark:text-slate-500">
+                                IMEI Number
+                              </label>
+                              <div className="relative">
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                                  <Hash className="w-4 h-4 text-slate-400" />
+                                </div>
+                                <input
+                                  type="text"
+                                  placeholder="IMEI Number"
+                                  className="w-full pl-10 pr-4 bg-slate-50/50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl h-[48px] font-bold text-sm outline-none focus:ring-2 focus:ring-[#84CC16]/20 transition-all dark:text-white"
+                                  value={item.imeiNumber}
+                                  onChange={(e) =>
+                                    updateBulkItem(
+                                      index,
+                                      "imeiNumber",
+                                      e.target.value,
+                                    )
+                                  }
+                                />
+                              </div>
+                            </div>
+
+                            <div className="lg:col-span-2 space-y-1.5">
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 dark:text-slate-500">
+                                Price ($)
+                              </label>
+                              <div className="relative">
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                                  <DollarSign className="w-4 h-4 text-slate-400" />
+                                </div>
+                                <input
+                                  type="number"
+                                  placeholder="0.00"
+                                  className="w-full pl-10 pr-4 bg-slate-50/50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl h-[48px] font-bold text-sm outline-none focus:ring-2 focus:ring-[#84CC16]/20 transition-all dark:text-white"
+                                  value={item.purchasePrice || ""}
+                                  onChange={(e) =>
+                                    updateBulkItem(
+                                      index,
+                                      "purchasePrice",
+                                      e.target.value,
+                                    )
+                                  }
+                                />
+                              </div>
+                            </div>
+
+                            <div className="lg:col-span-2 space-y-1.5">
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 dark:text-slate-500">
+                                Quantity
+                              </label>
+                              <div className="relative">
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                                  <Package className="w-4 h-4 text-slate-400" />
+                                </div>
+                                <input
+                                  type="number"
+                                  placeholder="1"
+                                  className="w-full pl-10 pr-4 bg-slate-50/50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl h-[48px] font-bold text-sm outline-none focus:ring-2 focus:ring-[#84CC16]/20 transition-all dark:text-white"
+                                  value={item.quantity || ""}
+                                  onChange={(e) =>
+                                    updateBulkItem(
+                                      index,
+                                      "quantity",
+                                      e.target.value,
+                                    )
+                                  }
+                                />
+                              </div>
+                            </div>
+
+                            <div className="lg:col-span-1 flex items-end justify-center pb-1">
+                              <button
+                                type="button"
+                                onClick={() => removeBulkRow(index)}
+                                className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                                title="Remove row"
+                              >
+                                <X className="w-5 h-5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-auto pt-8 flex items-center justify-between border-t border-slate-200/50 dark:border-slate-800/50">
+                        <div className="flex items-center gap-3 text-slate-400 dark:text-slate-500">
+                          <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                            <span className="text-sm font-black text-slate-600 dark:text-slate-300">
+                              {bulkItems.filter((i) => i.code.trim()).length}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-black uppercase tracking-widest">
+                            Ready to import
+                          </span>
+                        </div>
+
+                        <Button
+                          onClick={handleBulkSubmit}
+                          disabled={
+                            isCreatingFromBarcodeBulk ||
+                            bulkItems.filter((i) => i.code.trim()).length === 0
+                          }
+                          type="button"
+                          className="h-14 px-12 bg-slate-900 dark:bg-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 text-white rounded-[20px] font-black text-[12px] uppercase tracking-widest shadow-xl transition-all active:scale-[0.98] flex items-center gap-3"
+                        >
+                          {isCreatingFromBarcodeBulk ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <FileUp className="w-5 h-5" />
+                          )}
+                          <span>
+                            {isCreatingFromBarcodeBulk
+                              ? "Importing..."
+                              : `Import ${bulkItems.filter((i) => i.code.trim()).length} Devices`}
+                          </span>
+                        </Button>
                       </div>
                     </div>
                   </TabsContent>

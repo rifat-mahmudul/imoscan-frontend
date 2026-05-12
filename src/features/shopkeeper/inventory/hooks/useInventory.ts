@@ -7,7 +7,11 @@ import {
   createFromBarcode,
   createFromBarcodeBulk,
 } from "../api/inventory.api";
-import type { CreateInventoryInput, UpdateInventoryInput } from "../types";
+import type {
+  CreateInventoryInput,
+  UpdateInventoryInput,
+  CreateFromBarcodeBulkInput,
+} from "../types";
 
 export const INVENTORY_KEYS = {
   all: ["inventory"] as const,
@@ -71,7 +75,8 @@ export function useCreateFromBarcode() {
 export const useCreateFromBarcodeBulk = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (file: File) => createFromBarcodeBulk(file),
+    mutationFn: (input: CreateFromBarcodeBulkInput) =>
+      createFromBarcodeBulk(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: INVENTORY_KEYS.all });
     },

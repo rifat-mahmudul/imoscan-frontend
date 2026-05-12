@@ -192,3 +192,16 @@ export interface ScanResultData {
   itemName?: string;
   imeiNumber?: string;
 }
+
+export interface BulkBarcodeItem {
+  code: string;
+  imeiNumber: string;
+  purchasePrice: number;
+  quantity: number;
+  currentState: "new" | "good condition";
+}
+
+export interface CreateFromBarcodeBulkInput {
+  userId: string;
+  barcodes: BulkBarcodeItem[];
+}
