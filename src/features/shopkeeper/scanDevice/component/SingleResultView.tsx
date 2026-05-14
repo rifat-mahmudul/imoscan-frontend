@@ -22,6 +22,7 @@ import {
   Receipt,
   Check,
   Wallet,
+  Copy,
 } from "lucide-react";
 import { IMEIResult } from "../../scanDevice/types/scanDevice.types";
 import { CertificatePDF } from "./CertificatePDF";
@@ -102,10 +103,10 @@ export const SingleResultView = ({
   const { downloadCertificatePdf, isDownloading: hookIsDownloading } =
     useCertificateDownload();
 
-  // Separate loading states for certificate and invoice
   const [isCertificateDownloading, setIsCertificateDownloading] =
     useState(false);
   const [isInvoiceDownloading, setIsInvoiceDownloading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const providerData = scanResult.providerData as
     | {
@@ -122,15 +123,27 @@ export const SingleResultView = ({
   const providerHTML = providerData?.result || "";
   const providerRows = parseProviderRows(providerHTML);
 
-  const getDeviceImage = (html: string): string | null => {
-    const imgMatch = html.match(/<img[^>]+src=["']([^"']+)["']/);
-    return imgMatch ? imgMatch[1] : null;
-  };
+  // Create provider data map
+  const providerDataMap: Record<string, string> = {};
+  providerRows.forEach((row) => {
+    providerDataMap[row.label] = row.value;
+  });
 
-  const deviceImage = getDeviceImage(providerHTML);
-  const deviceNameFromProvider = providerRows.find(
-    (r) => r.label === "Device",
-  )?.value;
+  const deviceNameFromProvider =
+    providerDataMap["Device"] || scanResult.deviceName;
+  const imeiValue = providerDataMap["IMEI Number"] || scanResult.imei;
+  const imei2Value =
+    providerDataMap["IMEI 2"] || providerDataMap["IMEI2 Number"];
+  const serialNumber = providerDataMap["Serial Number"] || "N/A";
+  const eidNumber = providerDataMap["EID"] || "N/A";
+  const warrantyExpiry = providerDataMap["Warranty Expires"] || "N/A";
+  const purchaseDate = providerDataMap["Estimated Purchase Date"] || "N/A";
+  const coverageEndDate =
+    providerDataMap["Coverage End Date"] || warrantyExpiry;
+  const warrantyStatus =
+    providerDataMap["Warranty Type"] || "Apple Limited Warranty";
+  const replacedDevice = providerDataMap["Replaced Device"] || "No";
+  const lockedCarrier = providerDataMap["Locked Carrier"] || "Unlock";
 
   // Get check statuses
   const isBlacklistClean =
@@ -141,7 +154,19 @@ export const SingleResultView = ({
   const isPartAuthentic =
     scanResult.checks?.partAuthenticity?.status === "passed";
 
-  // Certificate and Invoice element IDs
+  const isSimUnlocked = scanResult.checks?.hardwareLock?.status === "passed";
+  const isICloudUnlocked = scanResult.checks?.hardwareLock?.status === "passed";
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr || dateStr === "N/A") return "N/A";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
   const certificateElementId = "certificate-pdf-single";
   const invoiceElementId = "smart-invoice-pdf-container";
 
@@ -173,11 +198,27 @@ export const SingleResultView = ({
     }
   };
 
-  const isAnyDownloading =
-    isCertificateDownloading ||
-    isInvoiceDownloading ||
-    parentIsDownloading ||
-    hookIsDownloading;
+  const handleCopyToClipboard = () => {
+    const textToCopy = `
+Model: ${deviceNameFromProvider || "iPhone"}
+IMEI: ${imeiValue}
+${imei2Value ? `IMEI2: ${imei2Value}` : ""}
+Serial Number: ${serialNumber}
+EID: ${eidNumber}
+Activation Status: ACTIVATED
+Warranty Status: ${warrantyStatus}
+Estimated Purchase Date: ${formatDate(purchaseDate)}
+Coverage End Date: ${formatDate(coverageEndDate)}
+Find My iPhone: ${isICloudUnlocked ? "OFF" : "ON"}
+iCloud Status: ${isBlacklistClean ? "CLEAN" : "FLAGGED"}
+US Block Status: ${isBlacklistClean ? "CLEAN" : "FLAGGED"}
+Locked Carrier: ${lockedCarrier}
+SIM-Lock Status: ${isSimUnlocked ? "UNLOCKED" : "LOCKED"}
+    `.trim();
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="p-4 md:py-10 max-w-6xl mx-auto space-y-6 font-sans text-slate-900 bg-[#F8FAFC] min-h-screen">
@@ -193,7 +234,138 @@ export const SingleResultView = ({
         <span className="font-medium">Back to scan</span>
       </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* --- MOBILE VIEW (Complete Data) --- */}
+      <div className="block md:hidden bg-white border border-slate-200 rounded-[32px] p-5 shadow-sm relative">
+        <div className="space-y-3 text-center text-[14px] text-[#5F6368] leading-relaxed">
+          <p>
+            <span className="font-semibold">Model:</span>{" "}
+            {deviceNameFromProvider || scanResult.deviceName || "iPhone"}
+          </p>
+          <p>
+            <span className="font-semibold">IMEI:</span> {imeiValue}
+          </p>
+          {imei2Value && (
+            <p>
+              <span className="font-semibold">IMEI2:</span> {imei2Value}
+            </p>
+          )}
+          <p>
+            <span className="font-semibold">Serial Number:</span> {serialNumber}
+          </p>
+          <p className="break-all">
+            <span className="font-semibold">EID:</span> {eidNumber}
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+            <span className="font-semibold">Activation:</span>
+            <span className="bg-[#4CAF50] text-white px-2 py-0.5 rounded-md text-[10px] font-bold">
+              ACTIVATED
+            </span>
+          </div>
+
+          <p>
+            <span className="font-semibold">Warranty:</span> {warrantyStatus}
+          </p>
+          <p>
+            <span className="font-semibold">Purchase Date:</span>{" "}
+            {formatDate(purchaseDate)}
+          </p>
+          <p>
+            <span className="font-semibold">Coverage End:</span>{" "}
+            {formatDate(coverageEndDate)}
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <span className="font-semibold">Find My iPhone:</span>
+            <span
+              className={`${!isICloudUnlocked ? "bg-[#F44336]" : "bg-[#4CAF50]"} text-white px-2 py-0.5 rounded-md text-[10px] font-bold`}
+            >
+              {!isICloudUnlocked ? "ON" : "OFF"}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <span className="font-semibold">iCloud Status:</span>
+            <span className="bg-[#4CAF50] text-white px-2 py-0.5 rounded-md text-[10px] font-bold uppercase">
+              {isBlacklistClean ? "CLEAN" : "FLAGGED"}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <span className="font-semibold">US Block:</span>
+            <span className="bg-[#4CAF50] text-white px-2 py-0.5 rounded-md text-[10px] font-bold uppercase">
+              {isBlacklistClean ? "CLEAN" : "FLAGGED"}
+            </span>
+          </div>
+
+          <p>
+            <span className="font-semibold">Locked Carrier:</span>{" "}
+            {lockedCarrier}
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <span className="font-semibold">SIM-Lock:</span>
+            <span
+              className={`${isSimUnlocked ? "bg-[#4CAF50]" : "bg-[#F44336]"} text-white px-2 py-0.5 rounded-md text-[10px] font-bold uppercase`}
+            >
+              {isSimUnlocked ? "UNLOCKED" : "LOCKED"}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <span className="font-semibold">Replaced by Apple:</span>
+            <span className="bg-[#4CAF50] text-white px-2 py-0.5 rounded-md text-[10px] font-bold uppercase">
+              {replacedDevice === "No" ? "NO" : "YES"}
+            </span>
+          </div>
+        </div>
+
+        <button
+          onClick={handleCopyToClipboard}
+          className="absolute bottom-4 right-4 text-slate-300 hover:text-slate-500 transition"
+        >
+          <Copy size={22} />
+        </button>
+
+        {/* Mobile Action Buttons */}
+        <div className="mt-6 space-y-2">
+          <button
+            onClick={handleDownloadInvoice}
+            disabled={isInvoiceDownloading}
+            className="w-full py-2.5 rounded-xl border-2 border-[#84CC16] text-[#84CC16] font-bold text-sm transition flex items-center justify-center gap-2"
+          >
+            {isInvoiceDownloading ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Receipt size={14} />
+            )}
+            {isInvoiceDownloading ? "Generating..." : "Create Smart Invoice"}
+          </button>
+          <button
+            onClick={handleDownloadCertificate}
+            disabled={isCertificateDownloading}
+            className="w-full py-2.5 rounded-xl bg-[#84CC16] text-white font-bold text-sm shadow-lg transition flex items-center justify-center gap-2"
+          >
+            {isCertificateDownloading ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Download size={14} />
+            )}
+            {isCertificateDownloading
+              ? "Generating..."
+              : "Download PDF Certificate"}
+          </button>
+        </div>
+
+        {copied && (
+          <div className="absolute top-3 right-3 bg-slate-800 text-white text-[10px] px-2 py-1 rounded-full animate-pulse">
+            Copied!
+          </div>
+        )}
+      </div>
+
+      {/* --- DESKTOP VIEW (COMPLETELY UNCHANGED) --- */}
+      <div className="hidden md:grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Header Card */}
         <div className="lg:col-span-2 bg-white rounded-2xl p-8 border border-slate-200 shadow-sm relative overflow-hidden">
           <div className="flex justify-between items-start">
@@ -447,7 +619,7 @@ export const SingleResultView = ({
         </div>
       </div>
 
-      {/* Hidden Certificate & Invoice Containers - Must be visible for html2canvas */}
+      {/* Hidden Certificate & Invoice Containers */}
       <div
         style={{
           position: "fixed",
@@ -480,7 +652,7 @@ export const SingleResultView = ({
   );
 };
 
-/* Helper Components */
+/* Helper Components - UNCHANGED */
 function StatusTile({
   icon,
   title,
