@@ -8,8 +8,13 @@ import {
   X,
   Info,
   Check,
-  Upload,
   Star,
+  SatelliteDish,
+  ShieldHalf,
+  Globe,
+  Cloudy,
+  LucideRotateCcwKey,
+  LockKeyhole,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useMemo } from "react";
@@ -33,6 +38,7 @@ export default function Banner() {
   const [selectedService, setSelectedService] = useState<IMEIService | null>(
     null,
   );
+  console.log(selectedService);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const { status } = useSession();
@@ -106,37 +112,37 @@ export default function Banner() {
       label: "FMI",
       keyword: "fmi",
       type: "specialized",
-      icon: "🔒",
+      icon: LockKeyhole,
     },
     {
       label: "Carrier",
       keyword: "carrier",
       type: "specialized",
-      icon: "📡",
+      icon: SatelliteDish,
     },
     {
       label: "MDM",
       keyword: "mdm",
       type: "specialized",
-      icon: "🛡️",
+      icon: ShieldHalf,
     },
     {
       label: "GSX",
       keyword: "gsx",
       type: "specialized",
-      icon: "🌐",
+      icon: Globe,
     },
     {
       label: "Sold By Check",
       keyword: "sold by",
       type: "specialized",
-      icon: "🔍",
+      icon: Search,
     },
     {
-      label: "Apple ID On/Off Check",
-      keyword: "apple id",
+      label: "iCloud On/Off Check",
+      keyword: "icloud",
       type: "specialized",
-      icon: "🟢",
+      icon: Cloudy,
     },
   ];
 
@@ -431,33 +437,49 @@ export default function Banner() {
           <div className="flex flex-wrap justify-center gap-6">
             {quickChecks
               .filter((tag) => tag.type === "specialized")
-              .map((tag, i) => (
-                <motion.button
-                  key={i}
-                  whileHover={{ y: -5, scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    setSearchTerm(tag.keyword);
-                    setIsDropdownOpen(true);
-                  }}
-                  className="group relative flex w-[140px] cursor-pointer flex-col items-center gap-2 rounded-2xl bg-white/20 p-4 backdrop-blur-md transition-all duration-300 hover:bg-white/10 hover:shadow-[0_8px_25px_rgba(132,204,22,0.2)] border border-white/20"
-                >
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/10 via-transparent to-white/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/0 via-primary/30 to-primary/0 opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-100" />
+              .map((tag, i) => {
+                const Icon = tag.icon;
 
-                  <div className="relative z-10 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 text-2xl shadow-lg transition-all duration-300 group-hover:from-primary/30 group-hover:to-primary/20 group-hover:shadow-primary/20">
-                    {tag.icon}
-                  </div>
+                return (
+                  <motion.button
+                    key={i}
+                    whileHover={{ y: -5, scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setSearchTerm(tag.keyword);
+                      setIsDropdownOpen(true);
+                    }}
+                    className="
+    group relative flex w-[140px] cursor-pointer flex-col items-center gap-2 rounded-2xl
+    border border-white/20 bg-white/10 backdrop-blur-xl
+    shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] p-4
+    transition-all duration-300 hover:bg-white/10 hover:shadow-[0_8px_25px_rgba(132,204,22,0.2)]
 
-                  <div className="relative z-10 text-center">
-                    <div className="text-sm font-extrabold text-black/50 dark:text-white">
-                      {tag.label}
+    /* mobile behavior */
+    max-sm:w-auto max-sm:min-w-[90px] max-sm:flex-row max-sm:gap-2 max-sm:p-2 max-sm:bg-transparent max-sm:backdrop-blur-none max-sm:border-0 max-sm:shadow-none
+  "
+                  >
+                    {/* background effects (hide on mobile) */}
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/10 via-transparent to-white/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100 max-sm:hidden" />
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/0 via-primary/30 to-primary/0 opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-100 max-sm:hidden" />
+
+                    {/* icon */}
+                    <div className="relative z-10 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 shadow-lg transition-all duration-300 group-hover:from-primary/30 group-hover:to-primary/20 group-hover:shadow-primary/20 max-sm:h-8 max-sm:w-8">
+                      <Icon size={22} className="text-primary" />
                     </div>
-                  </div>
 
-                  <div className="absolute bottom-2 left-1/2 h-0.5 w-0 -translate-x-1/2 rounded-full bg-primary transition-all duration-300 group-hover:w-8" />
-                </motion.button>
-              ))}
+                    {/* label */}
+                    <div className="relative z-10 text-center max-sm:text-left">
+                      <div className="text-sm font-extrabold text-black/50 dark:text-white max-sm:text-xs">
+                        {tag.label}
+                      </div>
+                    </div>
+
+                    {/* bottom line (hide on mobile) */}
+                    <div className="absolute bottom-2 left-1/2 h-0.5 w-0 -translate-x-1/2 rounded-full bg-primary transition-all duration-300 group-hover:w-8 max-sm:hidden" />
+                  </motion.button>
+                );
+              })}
           </div>
         </motion.div>
 
@@ -472,7 +494,9 @@ export default function Banner() {
               onClick={handleSearch}
               className="h-12 cursor-pointer rounded-full bg-primary/80 px-8 text-base font-extrabold leading-none text-primary-foreground shadow-[0_2px_4px_rgba(136,144,194,0.2),0_5px_15px_rgba(37,44,97,0.15)] transition-all hover:bg-primary active:scale-95"
             >
-              Free Checks
+              {selectedService?.price === "FREE" || !selectedService
+                ? "Free Checks"
+                : "Enter"}
             </button>
           </div>
         </motion.div>

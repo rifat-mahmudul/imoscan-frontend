@@ -15,6 +15,7 @@ import {
   Phone,
   Wrench,
   Bell,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -47,6 +48,15 @@ const navItems = [
     submenu: [
       { label: "Payment History", href: "/shopkeeper/payment/history" },
       { label: "Pricing Plane", href: "/shopkeeper/payment/add-funds" },
+    ],
+  },
+  {
+    icon: <FileText size={20} />,
+    label: "Invoice",
+    href: "/shopkeeper/invoice",
+    submenu: [
+      { label: "Create Invoice", href: "/shopkeeper/invoice/create-invoice" },
+      { label: "View Invoices", href: "/shopkeeper/invoice/view" },
     ],
   },
   // {

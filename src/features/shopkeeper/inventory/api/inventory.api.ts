@@ -98,3 +98,23 @@ export const createFromBarcodeBulk = async (
   const response = await api.post(`${BASE}/create-from-barcode/bulk`, input);
   return response.data;
 };
+
+export const createInvoice = async (input: {
+  shopkeeperId: string;
+  type: string;
+  invoice: File;
+}) => {
+  const formData = new FormData();
+
+  formData.append("shopkeeperId", input.shopkeeperId);
+  formData.append("type", input.type);
+  formData.append("invoice", input.invoice);
+
+  const response = await api.post(`/invoices/create`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return response.data;
+};
