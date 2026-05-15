@@ -6,6 +6,7 @@ import {
   deleteInventory,
   createFromBarcode,
   createFromBarcodeBulk,
+  createInvoice,
 } from "../api/inventory.api";
 import type {
   CreateInventoryInput,
@@ -82,3 +83,17 @@ export const useCreateFromBarcodeBulk = () => {
     },
   });
 };
+
+export function useCreateInvoice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      shopkeeperId: string;
+      type: string;
+      invoice: File;
+    }) => createInvoice(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: INVENTORY_KEYS.all });
+    },
+  });
+}
