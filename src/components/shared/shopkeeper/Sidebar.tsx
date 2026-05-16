@@ -56,7 +56,7 @@ const navItems = [
     href: "/shopkeeper/invoice",
     submenu: [
       { label: "Create Invoice", href: "/shopkeeper/invoice/create-invoice" },
-      { label: "View Invoices", href: "/shopkeeper/invoice/view" },
+      { label: "View Invoices", href: "/shopkeeper/invoice/invoice-history" },
     ],
   },
   // {

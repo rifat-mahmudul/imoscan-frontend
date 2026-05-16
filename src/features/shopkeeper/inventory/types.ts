@@ -172,6 +172,40 @@ export const CreateSoldProductSchema = z.object({
   image: z.any().optional(),
 });
 
+// ================= TYPES =================
+
+export interface InvoiceFile {
+  public_id: string;
+  url: string;
+  resource_type: string;
+}
+
+export interface Shopkeeper {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  shopName: string;
+  phone: string;
+}
+
+export interface InvoiceHistoryItem {
+  _id: string;
+  invoice: InvoiceFile;
+  shopkeeperId: Shopkeeper;
+  type: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InvoiceHistoryResponse {
+  success: boolean;
+  message: string;
+  statusCode: number;
+  data: InvoiceHistoryItem[];
+}
+
 // ─── TypeScript Interfaces ────────────────────────────────────────────────────
 
 export type InventoryItem = z.infer<typeof InventoryItemSchema>;

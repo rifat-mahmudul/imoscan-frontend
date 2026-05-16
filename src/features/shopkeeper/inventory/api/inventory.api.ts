@@ -4,6 +4,7 @@ import type {
   UpdateInventoryInput,
   InventoryListResponse,
   CreateFromBarcodeBulkInput,
+  InvoiceHistoryResponse,
 } from "../types";
 
 const BASE = "/inventory";
@@ -115,6 +116,14 @@ export const createInvoice = async (input: {
       "Content-Type": "multipart/form-data",
     },
   });
+
+  return response.data;
+};
+
+export const getMyInvoiceHistory = async (
+  id: string,
+): Promise<InvoiceHistoryResponse> => {
+  const response = await api.get(`/invoices/shopkeeper/${id}`);
 
   return response.data;
 };

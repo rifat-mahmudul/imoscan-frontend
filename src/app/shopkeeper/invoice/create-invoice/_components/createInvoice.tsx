@@ -4,7 +4,15 @@ import React, { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Store, User, Download, Package, Send } from "lucide-react";
+import {
+  Store,
+  User,
+  Download,
+  Package,
+  Send,
+  Loader2,
+  Search,
+} from "lucide-react";
 import { pdf } from "@react-pdf/renderer";
 import {
   PDFDownloadLink,
@@ -20,6 +28,7 @@ import {
   useMyInventory,
 } from "@/features/shopkeeper/inventory/hooks/useInventory";
 import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 
 // --- Enhanced PDF Styles (Professional Layout) ---
 const pdfStyles = StyleSheet.create({
@@ -257,8 +266,9 @@ const InvoicePDF = ({ customer, items, total }: any) => (
 
 export default function CreateInvoice() {
   const { data: inventoryData, isLoading, isError } = useMyInventory();
-  const { mutate: createInvoice } = useCreateInvoice();
+  const { mutate: createInvoice, isPending } = useCreateInvoice();
   const session = useSession();
+  const [searchQuery, setSearchQuery] = useState("");
   const shopkeeper = session.data?.user;
   const [selectedDeviceIds, setSelectedDeviceIds] = useState<string[]>([]);
   const [customer, setCustomer] = useState({
@@ -275,16 +285,31 @@ export default function CreateInvoice() {
     );
   };
 
+  const items = useMemo(() => {
+    return (inventoryData?.data || []).filter(
+      (item: any) => item.type === "inventory",
+    );
+  }, [inventoryData]);
+
+  const filteredDevices = useMemo(() => {
+    return items.filter(
+      (item: any) =>
+        item.itemName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.imeiNumber?.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [items, searchQuery]);
+
   const devices = useMemo(() => {
     return (
-      inventoryData?.data?.map((item: any) => ({
+      filteredDevices.map((item: any) => ({
         id: item._id,
         name: item.itemName,
         price: item.expectedPrice,
         image: item.image?.url || "/placeholder.png",
+        imeiNumber: item.imeiNumber,
       })) || []
     );
-  }, [inventoryData]);
+  }, [filteredDevices]);
 
   const selectedDevicesData = useMemo(
     () => devices.filter((device) => selectedDeviceIds.includes(device.id)),
@@ -310,11 +335,21 @@ export default function CreateInvoice() {
       type: "application/pdf",
     });
 
-    createInvoice({
-      shopkeeperId: shopkeeper?.id || "223423423",
-      type: "Custom invoice",
-      invoice: file,
-    });
+    createInvoice(
+      {
+        shopkeeperId: shopkeeper?.id || "223423423",
+        type: "Custom invoice",
+        invoice: file,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Invoice added successfully");
+        },
+        onError: () => {
+          toast.error("Addition failed");
+        },
+      },
+    );
   };
 
   return (
@@ -423,7 +458,18 @@ export default function CreateInvoice() {
             </div>
           </div>
         </div>
-
+        <div>
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search devices..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-12 pr-4 h-12 w-full bg-white border border-slate-100 dark:bg-slate-800 dark:border-slate-600 dark:text-white rounded-xl font-bold text-sm focus:ring-[#84CC16] focus:border-[#84CC16] outline-none transition"
+            />
+          </div>
+        </div>
         {/* Device Table */}
         <div className="rounded-[32px] border border-border bg-card overflow-hidden shadow-sm">
           <table className="w-full text-left">
@@ -530,16 +576,10 @@ export default function CreateInvoice() {
           )} */}
           <Button
             onClick={handleCreateInvoice}
-            disabled={selectedDeviceIds.length === 0 || isLoading}
+            disabled={selectedDeviceIds.length === 0 || isPending}
             className="bg-primary hover:bg-primary/90 h-16 px-10 text-sm font-black rounded-full shadow-lg flex items-center gap-3 uppercase tracking-wider"
           >
-            {isLoading ? (
-              "Uploading..."
-            ) : (
-              <>
-                <Send size={20} /> Send Invoice
-              </>
-            )}
+            Send Invoice {isPending && <Loader2 className="animate-spin " />}
           </Button>
         </div>
       </div>

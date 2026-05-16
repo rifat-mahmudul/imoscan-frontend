@@ -7,11 +7,13 @@ import {
   createFromBarcode,
   createFromBarcodeBulk,
   createInvoice,
+  getMyInvoiceHistory,
 } from "../api/inventory.api";
 import type {
   CreateInventoryInput,
   UpdateInventoryInput,
   CreateFromBarcodeBulkInput,
+  InvoiceHistoryResponse,
 } from "../types";
 
 export const INVENTORY_KEYS = {
@@ -95,5 +97,15 @@ export function useCreateInvoice() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: INVENTORY_KEYS.all });
     },
+  });
+}
+
+export function useMyInvoiceHistory(id: string) {
+  return useQuery<InvoiceHistoryResponse>({
+    queryKey: [...INVENTORY_KEYS.myInventory(), id],
+
+    queryFn: () => getMyInvoiceHistory(id),
+
+    enabled: !!id,
   });
 }
