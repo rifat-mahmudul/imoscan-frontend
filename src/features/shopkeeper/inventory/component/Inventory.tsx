@@ -9,6 +9,7 @@ import {
   Trash2,
   Edit2,
   Package,
+  DollarSign,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -204,6 +205,17 @@ export default function Inventory() {
                           align="end"
                           className="rounded-xl border-slate-100 p-2 shadow-xl"
                         >
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setEditingItem(item);
+                              setFormForceType("sold");
+                              setIsFormOpen(true);
+                            }}
+                            className="flex items-center gap-2 p-3 font-bold text-xs rounded-lg text-[#84CC16] hover:bg-[#84CC16]/10 cursor-pointer"
+                          >
+                            <DollarSign size={14} />
+                            Record Sales
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
                               setEditingItem(item);

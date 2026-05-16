@@ -32,6 +32,12 @@ export const InventoryItemSchema = z.object({
     })
     .optional()
     .nullable(),
+  customerName: z.string().optional(),
+  customerEmail: z.string().optional(),
+  customerAddress: z.string().optional(),
+  salePrice: z.number().optional(),
+  saleQuantity: z.number().optional(),
+  saleMethod: z.string().optional(),
   shopkeeper: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -91,6 +97,12 @@ export const CreateInventorySchema = z.object({
   status: z.enum(["inventory", "sold"]),
   currentState: z.enum(["new", "good condition"]),
   userId: z.string().optional(),
+  customerName: z.string().optional(),
+  customerEmail: z.string().optional(),
+  customerAddress: z.string().optional(),
+  salePrice: z.coerce.number().optional(),
+  saleQuantity: z.coerce.number().optional(),
+  saleMethod: z.string().optional(),
   image: z.any().optional(), // File or string for update
 });
 
@@ -113,6 +125,12 @@ export const UpdateInventorySchema = z.object({
   type: z.enum(["inventory", "sold"]).optional(),
   status: z.enum(["inventory", "sold"]).optional(),
   currentState: z.enum(["new", "good condition"]).optional(),
+  customerName: z.string().optional(),
+  customerEmail: z.string().optional(),
+  customerAddress: z.string().optional(),
+  salePrice: z.coerce.number().optional(),
+  saleQuantity: z.coerce.number().optional(),
+  saleMethod: z.string().optional(),
   image: z.any().optional(),
 });
 
