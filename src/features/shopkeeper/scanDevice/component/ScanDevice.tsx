@@ -45,7 +45,7 @@ export default function ScanDevice() {
     error,
     singleReportMeta,
     handleScan,
-    handleRegenerateScan, // ✅ এখানে যোগ করতে হবে
+    handleRegenerateScan,
     clearResults,
   } = useScanDevice();
 
@@ -100,15 +100,29 @@ export default function ScanDevice() {
         onDownload={() =>
           downloadCertificatePdf(
             ["certificate-pdf-favourite"],
-            `Favourite_Certificate_${imei}.pdf`,
+            `Favourite_Certificate_${favouriteResult?.providerResults?.imei || imei}.pdf`,
           )
         }
         isDownloading={isDownloading}
         onRegenerate={() => {
-          clearResults();
-          if (selectedService) {
-            handleRegenerateScan(imei, selectedService.serviceId || 6);
+          // Always use IMEI from API response
+          const imeiToRegenerate = favouriteResult?.providerResults?.imei;
+          if (!imeiToRegenerate) {
+            console.error("❌ No IMEI found in favouriteResult");
+            return Promise.reject(new Error("IMEI not found"));
           }
+          const serviceId =
+            singleReportMeta?.serviceId ??
+            selectedService?.serviceId ??
+            favouriteResult.bundledServiceId ??
+            6;
+          console.log(
+            "🔄 Regenerating favourite with IMEI:",
+            imeiToRegenerate,
+            "ServiceId:",
+            serviceId,
+          );
+          return handleRegenerateScan(imeiToRegenerate, serviceId, true);
         }}
       />
     );
@@ -129,14 +143,10 @@ export default function ScanDevice() {
           )
         }
         isDownloading={isDownloading}
-        onRegenerate={() => {
-          clearResults();
-          if (selectedService) {
-            handleRegenerateScan(
-              scanResult.imei,
-              selectedService.serviceId || 6,
-            );
-          }
+        onRegenerate={(imeiInput: string, serviceId: number) => {
+          const imeiToRegenerate = scanResult?.imei || imeiInput;
+          console.log("🔄 Regenerating single with IMEI:", imeiToRegenerate);
+          return handleRegenerateScan(imeiToRegenerate, serviceId, true);
         }}
       />
     );
@@ -161,7 +171,7 @@ export default function ScanDevice() {
             }}
             onRegenerateItem={(imei, serviceId) => {
               clearResults();
-              return handleRegenerateScan(imei, serviceId);
+              return handleRegenerateScan(imei, serviceId, true);
             }}
           />
         </div>

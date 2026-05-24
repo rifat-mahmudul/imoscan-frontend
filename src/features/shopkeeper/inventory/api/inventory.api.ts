@@ -5,6 +5,7 @@ import type {
   InventoryListResponse,
   CreateFromBarcodeBulkInput,
   InvoiceHistoryResponse,
+  CartListResponse,
 } from "../types";
 
 const BASE = "/inventory";
@@ -134,12 +135,21 @@ export const createInvoice = async (input: {
   shopkeeperId: string;
   type: string;
   invoice: File;
+  customerInfo?: string;
+  itemsIds?: string[];
 }) => {
   const formData = new FormData();
 
   formData.append("shopkeeperId", input.shopkeeperId);
   formData.append("type", input.type);
   formData.append("invoice", input.invoice);
+
+  if (input.customerInfo) formData.append("customerInfo", input.customerInfo);
+  if (input.itemsIds?.length) {
+    input.itemsIds.forEach((id: string) => {
+      formData.append("itemsIds", id);
+    });
+  }
 
   const response = await api.post(`/invoices/create`, formData, {
     headers: {
@@ -174,5 +184,24 @@ export const createCustomer = async (input: {
 
 export const getCustomersByShopkeeper = async (shopkeeperId: string) => {
   const response = await api.get(`/customer/shopkeeper/${shopkeeperId}`);
+  return response.data;
+};
+
+export const getShopkeeperCart = async (
+  shopkeeperId: string,
+): Promise<CartListResponse> => {
+  const response = await api.get(`/add-to-cart/shopkeeper/${shopkeeperId}`);
+  return response.data;
+};
+
+export const deleteCartItem = async (cartId: string) => {
+  const response = await api.delete(`/add-to-cart/delete/${cartId}`);
+  return response.data;
+};
+
+export const deleteAllShopkeeperCartItems = async (shopkeeperId: string) => {
+  const response = await api.delete(
+    `/add-to-cart/delete-all/shopkeeper/${shopkeeperId}`,
+  );
   return response.data;
 };

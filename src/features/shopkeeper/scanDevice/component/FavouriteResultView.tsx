@@ -9,7 +9,6 @@ import {
   Smartphone,
   Sparkles,
   ShieldCheck,
-  CheckCircle2,
   AlertTriangle,
   FileText,
   Lock,
@@ -21,7 +20,7 @@ import {
   Tag,
   Database,
   Wifi,
-  CheckCircle,
+  CheckCircle2,
   XCircle,
   Unlock,
   Copy,
@@ -47,6 +46,18 @@ interface FavouriteResultViewProps {
   onRegenerate?: () => void;
 }
 
+// Helper function to safely get risk score
+const getRiskScoreValue = (riskMeter: any): number => {
+  if (typeof riskMeter === "number") return riskMeter;
+  if (
+    riskMeter &&
+    typeof riskMeter === "object" &&
+    typeof riskMeter.score === "number"
+  )
+    return riskMeter.score;
+  return 0;
+};
+
 const getRiskLabel = (score: number) => {
   if (score <= 25)
     return {
@@ -69,16 +80,14 @@ const transformToIMEIResult = (
   imei: string,
 ): IMEIResult => {
   const providerData = scanResult.providerResults;
-  const riskScore = scanResult.riskMeter || 0;
+  const riskScoreValue = getRiskScoreValue(scanResult.riskMeter);
 
-  // Get risk level
   const getRiskLevel = (score: number) => {
     if (score <= 25) return "Low Risk";
     if (score <= 60) return "Medium Risk";
     return "High Risk";
   };
 
-  // Extract storage from device configuration
   const extractStorage = () => {
     const configMatch = providerData.device_configuration?.match(/(\d+)GB/);
     if (configMatch) return parseInt(configMatch[1]);
@@ -87,7 +96,6 @@ const transformToIMEIResult = (
     return 256;
   };
 
-  // Extract color
   const extractColor = () => {
     const colors = [
       "Natural Titanium",
@@ -103,9 +111,7 @@ const transformToIMEIResult = (
     ];
     const allText = `${providerData.description} ${providerData.device_configuration}`;
     for (const color of colors) {
-      if (allText.includes(color)) {
-        return color;
-      }
+      if (allText.includes(color)) return color;
     }
     return "Natural Titanium";
   };
@@ -126,9 +132,9 @@ const transformToIMEIResult = (
       ? "Verified - Clean"
       : "Flagged - Check Required",
     riskMeter: {
-      riskLevel: getRiskLevel(riskScore),
-      score: riskScore,
-      label: getRiskLevel(riskScore),
+      riskLevel: getRiskLevel(riskScoreValue),
+      score: riskScoreValue,
+      label: getRiskLevel(riskScoreValue),
     },
     marketValue: {
       amount: storage === 256 ? 899 : storage === 512 ? 1099 : 1299,
@@ -177,11 +183,7 @@ const transformToIMEIResult = (
         free: "N/A",
         label: `${storage}GB Storage`,
       },
-      batteryHealth: {
-        percentage: 95,
-        cycleCount: 0,
-        label: "Good Condition",
-      },
+      batteryHealth: { percentage: 95, cycleCount: 0, label: "Good Condition" },
       processor: "A-Series Chip",
       modem: "5G Capable",
       display: "Super Retina XDR",
@@ -256,12 +258,10 @@ export const FavouriteResultView = ({
   onRegenerate,
 }: FavouriteResultViewProps) => {
   const providerData = scanResult.providerResults;
-  const riskScore = scanResult.riskMeter;
-  const riskInfo = getRiskLabel(riskScore);
+  const riskScoreValue = getRiskScoreValue(scanResult.riskMeter);
+  const riskInfo = getRiskLabel(riskScoreValue);
   const [copied, setCopied] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
-
-  // Invoice modal state
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
 
@@ -269,7 +269,6 @@ export const FavouriteResultView = ({
   const isICloudUnlocked = providerData.icloud_lock?.toLowerCase() === "off";
   const isBlacklistClean =
     providerData.blacklist_status?.toLowerCase() === "clean";
-
   const isOldGenerated = (scanResult as any).oldGenerated === true;
 
   const extractMarketValue = () => {
@@ -306,7 +305,7 @@ ${providerData.imei2 ? `IMEI2: ${providerData.imei2}` : ""}
 Serial Number: ${providerData.serial_number || "N/A"}
 EID: ${providerData.eid || "N/A"}
 Warranty Status: ${providerData.warranty_status || "Limited Warranty"}
-Purchase Date: ${formatDate(providerData.purchase_date)}
+Purchase Date: ${formatDate(providerData.purchase_date || "")}
 Coverage End Date: ${providerData.coverage_end_date || "N/A"}
 Find My iPhone: ${isICloudUnlocked ? "OFF" : "ON"}
 iCloud Status: ${isBlacklistClean ? "CLEAN" : "FLAGGED"}
@@ -322,19 +321,18 @@ Replaced Device: ${providerData.replaced_device === "No" ? "NO" : "YES"}
   const handleRegenerate = async () => {
     if (onRegenerate) {
       setIsRegenerating(true);
-      await onRegenerate();
-      setIsRegenerating(false);
+      try {
+        await onRegenerate();
+      } finally {
+        setIsRegenerating(false);
+      }
     }
   };
 
-  // Handle invoice generation
   const handleGenerateInvoice = async (invoiceData: InvoiceFormData) => {
     setIsGeneratingInvoice(true);
     try {
-      // Transform scan result to IMEIResult format
       const imeiResult = transformToIMEIResult(scanResult, imei);
-
-      // Shopkeeper details
       const shopkeeperDetails = {
         shopName: "Tech Solutions BD",
         shopAddress: "123, Gulshan Avenue, Dhaka-1212, Bangladesh",
@@ -343,7 +341,6 @@ Replaced Device: ${providerData.replaced_device === "No" ? "NO" : "YES"}
         vatId: "VAT-123456789",
       };
 
-      // Create a temporary div to render the PDF content
       const tempDiv = document.createElement("div");
       tempDiv.style.position = "absolute";
       tempDiv.style.left = "-9999px";
@@ -351,12 +348,10 @@ Replaced Device: ${providerData.replaced_device === "No" ? "NO" : "YES"}
       tempDiv.style.width = `${INVOICE_PDF_WIDTH}px`;
       document.body.appendChild(tempDiv);
 
-      // Dynamically import required libraries
       const ReactDOMServer = await import("react-dom/server");
       const html2canvas = (await import("html2canvas")).default;
       const { jsPDF } = await import("jspdf");
 
-      // Render the PDF component to HTML string
       const pdfHtml = ReactDOMServer.renderToString(
         <SmartInvoicePDF
           data={imeiResult}
@@ -366,7 +361,6 @@ Replaced Device: ${providerData.replaced_device === "No" ? "NO" : "YES"}
         />,
       );
 
-      // Add styles to the HTML
       const fullHtml = `
         <!DOCTYPE html>
         <html>
@@ -374,33 +368,17 @@ Replaced Device: ${providerData.replaced_device === "No" ? "NO" : "YES"}
             <meta charset="UTF-8">
             <title>Invoice ${imei.slice(-8)}</title>
             <style>
-              * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-              }
-              body {
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                background: white;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                min-height: 100vh;
-              }
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { font-family: 'Inter', sans-serif; background: white; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
             </style>
           </head>
-          <body>
-            ${pdfHtml}
-          </body>
+          <body>${pdfHtml}</body>
         </html>
       `;
 
       tempDiv.innerHTML = fullHtml;
-
-      // Wait for images to load
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Convert to canvas
       const canvas = await html2canvas(
         tempDiv.querySelector("#invoice-pdf") || tempDiv,
         {
@@ -408,7 +386,6 @@ Replaced Device: ${providerData.replaced_device === "No" ? "NO" : "YES"}
           backgroundColor: "#ffffff",
           logging: false,
           useCORS: true,
-          allowTaint: false,
         },
       );
 
@@ -416,15 +393,10 @@ Replaced Device: ${providerData.replaced_device === "No" ? "NO" : "YES"}
       const imgWidth = INVOICE_PDF_WIDTH;
       const imgHeight = (canvas.height * INVOICE_PDF_WIDTH) / canvas.width;
 
-      const pdf = new jsPDF({
-        unit: "px",
-        format: [imgWidth, imgHeight + 20],
-      });
-
+      const pdf = new jsPDF({ unit: "px", format: [imgWidth, imgHeight + 20] });
       pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
       pdf.save(`invoice_${imei.slice(-8)}.pdf`);
 
-      // Clean up
       document.body.removeChild(tempDiv);
       setShowInvoiceModal(false);
     } catch (error) {
@@ -473,7 +445,7 @@ Replaced Device: ${providerData.replaced_device === "No" ? "NO" : "YES"}
           <button
             onClick={handleRegenerate}
             disabled={isRegenerating}
-            className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50"
           >
             {isRegenerating ? (
               <Loader2 size={16} className="animate-spin" />
@@ -535,20 +507,18 @@ Replaced Device: ${providerData.replaced_device === "No" ? "NO" : "YES"}
             <span className="font-semibold">EID:</span>{" "}
             {providerData.eid || "N/A"}
           </p>
-
           <p>
             <span className="font-semibold">Warranty:</span>{" "}
             {providerData.warranty_status || "Limited Warranty"}
           </p>
           <p>
             <span className="font-semibold">Purchase Date:</span>{" "}
-            {formatDate(providerData.purchase_date)}
+            {formatDate(providerData.purchase_date || "")}
           </p>
           <p>
             <span className="font-semibold">Coverage End:</span>{" "}
             {providerData.coverage_end_date || "N/A"}
           </p>
-
           <div className="flex flex-wrap items-center justify-center gap-2">
             <span className="font-semibold">Find My iPhone:</span>
             <span
@@ -557,19 +527,16 @@ Replaced Device: ${providerData.replaced_device === "No" ? "NO" : "YES"}
               {!isICloudUnlocked ? "ON" : "OFF"}
             </span>
           </div>
-
           <div className="flex flex-wrap items-center justify-center gap-2">
             <span className="font-semibold">iCloud Status:</span>
             <span className="bg-[#4CAF50] text-white px-2 py-0.5 rounded-md text-[10px] font-bold uppercase">
               {isBlacklistClean ? "CLEAN" : "FLAGGED"}
             </span>
           </div>
-
           <p>
             <span className="font-semibold">Locked Carrier:</span>{" "}
             {providerData.locked_carrier || "10 - Unlock"}
           </p>
-
           <div className="flex flex-wrap items-center justify-center gap-2">
             <span className="font-semibold">SIM-Lock:</span>
             <span
@@ -578,7 +545,6 @@ Replaced Device: ${providerData.replaced_device === "No" ? "NO" : "YES"}
               {isSimUnlocked ? "UNLOCKED" : "LOCKED"}
             </span>
           </div>
-
           <div className="flex flex-wrap items-center justify-center gap-2">
             <span className="font-semibold">Replaced by Apple:</span>
             <span className="bg-[#4CAF50] text-white px-2 py-0.5 rounded-md text-[10px] font-bold uppercase">
@@ -594,14 +560,12 @@ Replaced Device: ${providerData.replaced_device === "No" ? "NO" : "YES"}
           <Copy size={22} />
         </button>
 
-        {/* Mobile Action Buttons */}
         <div className="mt-6 space-y-2">
           <button
             onClick={() => setShowInvoiceModal(true)}
             className="w-full py-2.5 rounded-xl border-2 border-[#84CC16] text-[#84CC16] font-bold text-sm transition flex items-center justify-center gap-2"
           >
-            <FileText size={14} />
-            Create Smart Invoice
+            <FileText size={14} /> Create Smart Invoice
           </button>
           <button
             onClick={onDownload}
@@ -665,7 +629,7 @@ Replaced Device: ${providerData.replaced_device === "No" ? "NO" : "YES"}
                 <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                   <div
                     className={`h-full ${riskInfo.color} transition-all duration-1000`}
-                    style={{ width: `${riskScore}%` }}
+                    style={{ width: `${riskScoreValue}%` }}
                   />
                 </div>
                 <div className="flex justify-between mt-3">
@@ -673,7 +637,7 @@ Replaced Device: ${providerData.replaced_device === "No" ? "NO" : "YES"}
                     {riskInfo.label}
                   </span>
                   <span className="text-slate-400 font-medium">
-                    {riskScore}/100
+                    {riskScoreValue}/100
                   </span>
                 </div>
               </div>
@@ -742,13 +706,12 @@ Replaced Device: ${providerData.replaced_device === "No" ? "NO" : "YES"}
               onClick={() => setShowInvoiceModal(true)}
               className="w-full py-3 rounded-xl border-2 border-[#84CC16] text-[#84CC16] font-bold text-sm hover:bg-lime-50 transition flex items-center justify-center gap-2"
             >
-              <FileText size={16} />
-              Create Smart Invoice
+              <FileText size={16} /> Create Smart Invoice
             </button>
             <button
               onClick={onDownload}
               disabled={isDownloading}
-              className="w-full py-3 rounded-xl bg-[#84CC16] text-white font-bold text-sm hover:bg-[#76b813] transition shadow-lg shadow-lime-500/20 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-wait"
+              className="w-full py-3 rounded-xl bg-[#84CC16] text-white font-bold text-sm hover:bg-[#76b813] transition shadow-lg shadow-lime-500/20 flex items-center justify-center gap-2 disabled:opacity-70"
             >
               {isDownloading ? (
                 <Loader2 size={18} className="animate-spin" />
@@ -894,7 +857,7 @@ Replaced Device: ${providerData.replaced_device === "No" ? "NO" : "YES"}
               <span className="text-xs text-slate-500">iCloud Lock</span>
               {isICloudUnlocked ? (
                 <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
-                  <CheckCircle size={12} /> OFF (Clean)
+                  <CheckCircle2 size={12} /> OFF (Clean)
                 </span>
               ) : (
                 <span className="text-xs font-bold text-red-600 flex items-center gap-1">
@@ -956,7 +919,7 @@ Replaced Device: ${providerData.replaced_device === "No" ? "NO" : "YES"}
                 Risk Score
               </p>
               <p className="text-sm font-bold text-slate-700">
-                {riskScore}/100
+                {riskScoreValue}/100
               </p>
             </div>
           </div>
