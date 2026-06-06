@@ -50,7 +50,6 @@ const formatDate = (dateStr: string | undefined | null): string => {
   if (!dateStr || dateStr === "N/A") return "N/A";
 
   try {
-    // Handle DD/MM/YY format
     if (dateStr.match(/^\d{2}\/\d{2}\/\d{2}$/)) {
       const [day, month, year] = dateStr.split("/");
       const date = new Date(
@@ -64,7 +63,6 @@ const formatDate = (dateStr: string | undefined | null): string => {
         day: "numeric",
       });
     }
-    // Handle YYYY-MM-DD format
     if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
       const date = new Date(dateStr);
       return date.toLocaleDateString("en-US", {
@@ -73,7 +71,6 @@ const formatDate = (dateStr: string | undefined | null): string => {
         day: "numeric",
       });
     }
-    // Handle date already formatted
     if (dateStr.match(/^[A-Za-z]+ \d{1,2}, \d{4}$/)) {
       return dateStr;
     }
@@ -101,7 +98,7 @@ const getRiskLabel = (score: number): string => {
   return "High Risk";
 };
 
-// Extract device data from a single batch item
+// Extract device data from a single batch item - UPDATED with all missing fields
 const extractBatchDeviceData = (item: BatchImeiItemResult | null) => {
   if (!item || !item.ok || !item.data) {
     return {
@@ -109,14 +106,17 @@ const extractBatchDeviceData = (item: BatchImeiItemResult | null) => {
       errorMessage: item?.message || "No data available",
       isEmpty: true,
       deviceName: "Unknown",
+      deviceId: "",
       imeiValue: item?.imei || "",
       imei2Value: "",
       meidValue: "",
       serialNumber: "N/A",
       eidNumber: "N/A",
       warrantyStatus: "N/A",
+      coverageStatus: "",
       purchaseDate: "N/A",
       coverageEndDate: "N/A",
+      coverageStartDate: "",
       notice: "",
       replacedDevice: "No",
       activationStatus: "N/A",
@@ -130,12 +130,27 @@ const extractBatchDeviceData = (item: BatchImeiItemResult | null) => {
       mdmLock: "N/A",
       unlockStatus: "N/A",
       simlockStatus: "N/A",
+      simlock: "",
       carrierName: "N/A",
+      sim1Carrier: "",
       productDescription: "",
       modelNumber: "N/A",
       partNumber: "N/A",
+      partCountry: "",
       capacity: "",
       color: "",
+      limitedWarranty: "",
+      incidentsAvailable: "",
+      initialUnbrick: "",
+      productVersion: "",
+      soldToName: "",
+      purchaseCountry: "",
+      purchaseCountryCode: "",
+      gsxReplacementHistory: "",
+      initialActivationPolicyDescription: "",
+      lastActivationPolicyDescription: "",
+      nextActivationPolicyDescription: "",
+      nextTetherPolicy: "",
       riskScore: 0,
       riskLevel: "N/A",
       image: null,
@@ -176,7 +191,7 @@ const extractBatchDeviceData = (item: BatchImeiItemResult | null) => {
   const provider = (mainData as any)?.provider || null;
   const oldGenerated = (mainData as any)?.oldGenerated === true;
 
-  // Extract device name
+  // Basic device info
   const deviceName =
     parsedProviderData.device ||
     parsedProviderData.model_name ||
@@ -186,53 +201,50 @@ const extractBatchDeviceData = (item: BatchImeiItemResult | null) => {
     parsedProviderData.device_configuration?.split(" ")[0] ||
     "iPhone";
 
-  // Extract IMEI
+  const deviceId =
+    parsedProviderData.deviceid || parsedProviderData.device_id || "";
+
+  // Identifiers
   const imeiValue =
     parsedProviderData.imei_number ||
     parsedProviderData.imei ||
     parsedProviderData.deviceid ||
     item.imei ||
     "";
-
-  // Extract IMEI2
   const imei2Value =
     parsedProviderData.imei2_number ||
     parsedProviderData.imei2 ||
     parsedProviderData.imei_2 ||
     "";
-
-  // Extract MEID
   const meidValue =
     parsedProviderData.meid_number || parsedProviderData.meid || "";
-
-  // Extract Serial Number
   const serialNumber =
     parsedProviderData.serial_number ||
     parsedProviderData.serial ||
     parsedProviderData.sn ||
     "N/A";
-
-  // Extract EID
+  const serialKey = parsedProviderData.serial_key || "";
   const eidNumber =
     parsedProviderData.eid || parsedProviderData.csncsn2eid || "N/A";
 
-  // Extract Warranty Status
+  // Warranty & Coverage
   let warrantyStatus =
     parsedProviderData.warranty_type ||
     parsedProviderData.warranty_status ||
     "N/A";
+  const coverageStatus = parsedProviderData.coverage_status || "";
+  const limitedWarranty = parsedProviderData.limited_warranty || "";
+  const incidentsAvailable = parsedProviderData.incidents_available || "";
+
   if (parsedProviderData.warranty_status_code === "LP")
     warrantyStatus = "Limited Warranty";
   if (parsedProviderData.applecare_covered === "Yes")
     warrantyStatus = "AppleCare+";
 
-  // Extract Purchase Date
   const purchaseDate =
     parsedProviderData.estimated_purchase_date ||
     parsedProviderData.purchase_date ||
     "N/A";
-
-  // Extract Coverage End Date
   let coverageEndDate =
     parsedProviderData.warranty_expires ||
     parsedProviderData.coverage_end_date ||
@@ -240,56 +252,52 @@ const extractBatchDeviceData = (item: BatchImeiItemResult | null) => {
   if (parsedProviderData.repairs_and_service_expiration_date)
     coverageEndDate = parsedProviderData.repairs_and_service_expiration_date;
 
-  // Extract Notice
+  const coverageStartDate = parsedProviderData.coverage_start_date || "";
+  const initialUnbrick = parsedProviderData.initial_unbrick || "";
+  const productVersion = parsedProviderData.product_version || "";
+
+  // Notice
   const notice = parsedProviderData.notice || "";
 
-  // Extract Replaced Device
+  // Status Flags
   const replacedDevice =
     parsedProviderData.replaced_device === "Yes" ? "Yes" : "No";
-
-  // Extract Activation Status
   const activationStatus =
     parsedProviderData.activation_status ||
     (parsedProviderData.device_activation === "No"
       ? "Not Activated"
       : "Activated") ||
     "Activated";
-
-  // Extract Coverage Benefits
   const coverageBenefits =
     parsedProviderData.coverage_benefits ||
     parsedProviderData.applecare_description ||
     "";
 
-  // Extract Registration Status
   let registrationStatus = parsedProviderData.registration_status || "";
   if (registrationStatus === "Yes") registrationStatus = "Registered";
   if (parsedProviderData.icloud_status === "CLEAN")
     registrationStatus = "Clean";
 
-  // Extract Temp Coverage
   const tempCoverage =
     parsedProviderData.temp_coverage === "Yes" ? "Yes" : "No";
-
-  // Extract Open Repair
   const openRepair = parsedProviderData.open_repair === "Yes" ? "Yes" : "No";
 
-  // Extract Serial Key
-  const serialKey = parsedProviderData.serial_key || "";
-
-  // Extract iCloud Status
+  // Lock Status
   let iCloudLock = "N/A";
   if (parsedProviderData.icloud_lock === "ON") iCloudLock = "Locked";
   if (parsedProviderData.icloud_lock === "OFF") iCloudLock = "Unlocked";
 
   const iCloudStatus = parsedProviderData.icloud_status || "N/A";
 
-  // Extract MDM Lock
   let mdmLock = "N/A";
   if (parsedProviderData.mdm_lock === "ON") mdmLock = "Locked";
   if (parsedProviderData.mdm_lock === "OFF") mdmLock = "Unlocked";
 
-  // Extract Unlock Status
+  const simlockStatus = parsedProviderData.simlock_status || "N/A";
+  const simlock =
+    parsedProviderData.simlock || parsedProviderData.sim_lock || "";
+
+  // Unlock Status
   let unlockStatus = "N/A";
   if (parsedProviderData.simpolicy_unlock_status) {
     unlockStatus = parsedProviderData.simpolicy_unlock_status;
@@ -307,50 +315,61 @@ const extractBatchDeviceData = (item: BatchImeiItemResult | null) => {
     unlockStatus = "UNLOCKED";
   }
 
-  // Extract SIM Lock Status
-  const simlockStatus = parsedProviderData.simlock_status || "N/A";
-
-  // Extract Carrier Name
+  // Carrier & Network
   const carrierName = parsedProviderData.carrier_name || "N/A";
+  const sim1Carrier =
+    parsedProviderData.sim1_carrier || parsedProviderData.carrier || "";
 
-  // Extract Product Description
+  // Product Info
   const productDescription =
     parsedProviderData.product_description ||
     parsedProviderData.config_description ||
     "";
-
-  // Extract Model Number
   const modelNumber =
     parsedProviderData.model_number ||
     parsedProviderData.basic_material ||
     "N/A";
-
-  // Extract Part Number
   const partNumber =
     parsedProviderData.part_number ||
     parsedProviderData.material_number ||
     "N/A";
+  const partCountry = parsedProviderData.part_country || "";
 
-  // Extract Capacity
+  // Capacity & Color
   let capacity = parsedProviderData.capacity || "";
   if (productDescription.includes("256GB")) capacity = "256GB";
   if (productDescription.includes("128GB")) capacity = "128GB";
   if (productDescription.includes("512GB")) capacity = "512GB";
-  if (productDescription.includes("1TB")) capacity = "1TB";
 
-  // Extract Color
   let color = "";
   if (productDescription.includes("DBLUE")) color = "Deep Blue";
   if (productDescription.includes("BLU")) color = "Blue";
-  if (productDescription.includes("BLACK")) color = "Black";
-  if (productDescription.includes("WHITE")) color = "White";
-  if (productDescription.includes("GOLD")) color = "Gold";
-  if (productDescription.includes("PURPLE")) color = "Purple";
 
-  // Extract image
+  // Purchase Info
+  const soldToName = parsedProviderData.sold_to_name || "";
+  const purchaseCountry = parsedProviderData.purchase_country_desc || "";
+  const purchaseCountryCode = parsedProviderData.purchase_country_code || "";
+
+  // GSX Replacement History
+  const gsxReplacementHistory =
+    parsedProviderData.gsx_replacement_history || "";
+
+  // Activation Policies
+  const initialActivationPolicyDescription =
+    parsedProviderData.initial_activation_policy_description || "";
+  const lastActivationPolicyDescription =
+    parsedProviderData.last_activation_policy_description || "";
+  const nextActivationPolicyDescription =
+    parsedProviderData.next_activation_policy_description || "";
+  const nextTetherPolicy =
+    parsedProviderData.next_tether_policy_details ||
+    parsedProviderData.next_tether_policy_id ||
+    "";
+
+  // Image
   const image = parsedProviderData.image?.src || null;
 
-  // Extract AI Insight
+  // AI Insight
   const aiInsight = (mainData as any)?.aiInsight || null;
 
   return {
@@ -358,14 +377,17 @@ const extractBatchDeviceData = (item: BatchImeiItemResult | null) => {
     errorMessage: "",
     isEmpty: false,
     deviceName,
+    deviceId,
     imeiValue,
     imei2Value,
     meidValue,
     serialNumber,
     eidNumber,
     warrantyStatus,
+    coverageStatus,
     purchaseDate,
     coverageEndDate,
+    coverageStartDate,
     notice,
     replacedDevice,
     activationStatus,
@@ -379,12 +401,27 @@ const extractBatchDeviceData = (item: BatchImeiItemResult | null) => {
     mdmLock,
     unlockStatus,
     simlockStatus,
+    simlock,
     carrierName,
+    sim1Carrier,
     productDescription,
     modelNumber,
     partNumber,
+    partCountry,
     capacity,
     color,
+    limitedWarranty,
+    incidentsAvailable,
+    initialUnbrick,
+    productVersion,
+    soldToName,
+    purchaseCountry,
+    purchaseCountryCode,
+    gsxReplacementHistory,
+    initialActivationPolicyDescription,
+    lastActivationPolicyDescription,
+    nextActivationPolicyDescription,
+    nextTetherPolicy,
     riskScore,
     riskLevel,
     image,
@@ -411,6 +448,7 @@ export const BulkResultView = ({
   const [invoiceFormData, setInvoiceFormData] =
     useState<InvoiceFormData | null>(null);
   const [isInvoiceGenerating, setIsInvoiceGenerating] = useState(false);
+  const [showAllFields, setShowAllFields] = useState(false);
   const selectRef = useRef<HTMLDivElement>(null);
 
   const { status } = useSession();
@@ -418,18 +456,6 @@ export const BulkResultView = ({
   const { downloadCertificatePdf } = useCertificateDownload();
 
   const batchRows = useMemo(() => batchResult?.data ?? [], [batchResult]);
-
-  const successfulBatchRows = useMemo(
-    () =>
-      batchRows.filter(
-        (
-          row,
-        ): row is BatchImeiItemResult & {
-          data: NonNullable<typeof row.data>;
-        } => Boolean(row.ok && row.data),
-      ),
-    [batchRows],
-  );
 
   const selectedBatchRow = useMemo(
     () => batchRows[selectedBatchIndex] ?? null,
@@ -444,14 +470,17 @@ export const BulkResultView = ({
 
   const {
     deviceName,
+    deviceId,
     imeiValue,
     imei2Value,
     meidValue,
     serialNumber,
     eidNumber,
     warrantyStatus,
+    coverageStatus,
     purchaseDate,
     coverageEndDate,
+    coverageStartDate,
     notice,
     replacedDevice,
     activationStatus,
@@ -465,12 +494,27 @@ export const BulkResultView = ({
     mdmLock,
     unlockStatus,
     simlockStatus,
+    simlock,
     carrierName,
+    sim1Carrier,
     productDescription,
     modelNumber,
     partNumber,
+    partCountry,
     capacity,
     color,
+    limitedWarranty,
+    incidentsAvailable,
+    initialUnbrick,
+    productVersion,
+    soldToName,
+    purchaseCountry,
+    purchaseCountryCode,
+    gsxReplacementHistory,
+    initialActivationPolicyDescription,
+    lastActivationPolicyDescription,
+    nextActivationPolicyDescription,
+    nextTetherPolicy,
     riskScore,
     riskLevel,
     image,
@@ -479,34 +523,33 @@ export const BulkResultView = ({
     oldGenerated,
     hasError,
     errorMessage,
-    parsedProviderData,
   } = extractedData;
 
-  const riskInfo = getRiskLabel(riskScore);
+  // Collect all non-empty fields for display
+  const allFields = useMemo(() => {
+    const fields: { label: string; value: any; condition?: boolean }[] = [
+      // Basic Info
+      { label: "Device Name", value: deviceName },
+      { label: "Device ID", value: deviceId, condition: !!deviceId },
 
-  // Generate copy text
-  const generateCopyText = useCallback(() => {
-    const fields: { label: string; value: string; condition?: boolean }[] = [
-      { label: "Model", value: deviceName },
+      // Identifiers
       { label: "IMEI", value: imeiValue },
-      {
-        label: "IMEI2",
-        value: imei2Value,
-        condition: imei2Value && imei2Value !== "N/A",
-      },
-      {
-        label: "MEID",
-        value: meidValue,
-        condition: meidValue && meidValue !== "N/A",
-      },
+      { label: "IMEI2", value: imei2Value, condition: !!imei2Value },
+      { label: "MEID", value: meidValue, condition: !!meidValue },
       { label: "Serial Number", value: serialNumber },
+      { label: "Serial Key", value: serialKey, condition: !!serialKey },
       {
         label: "EID",
         value: eidNumber,
-        condition: eidNumber && eidNumber !== "N/A",
+        condition: eidNumber !== "N/A" && !!eidNumber,
       },
-      { label: "Capacity", value: capacity, condition: capacity },
-      { label: "Color", value: color, condition: color },
+
+      // Product Info
+      {
+        label: "Product Description",
+        value: productDescription,
+        condition: !!productDescription,
+      },
       {
         label: "Model Number",
         value: modelNumber,
@@ -517,106 +560,157 @@ export const BulkResultView = ({
         value: partNumber,
         condition: partNumber !== "N/A",
       },
-      { label: "Activation Status", value: activationStatus },
-      { label: "Warranty Type", value: warrantyStatus },
-      { label: "Warranty Expires", value: formatDate(coverageEndDate) },
-      { label: "Estimated Purchase Date", value: formatDate(purchaseDate) },
+      { label: "Part Country", value: partCountry, condition: !!partCountry },
+      { label: "Capacity", value: capacity, condition: !!capacity },
+      { label: "Color", value: color, condition: !!color },
+      {
+        label: "Product Version",
+        value: productVersion,
+        condition: !!productVersion,
+      },
+
+      // Warranty & Coverage
+      { label: "Warranty Status", value: warrantyStatus },
+      {
+        label: "Coverage Status",
+        value: coverageStatus,
+        condition: !!coverageStatus,
+      },
+      {
+        label: "Coverage Start Date",
+        value: coverageStartDate ? formatDate(coverageStartDate) : null,
+        condition: !!coverageStartDate,
+      },
+      {
+        label: "Coverage End Date",
+        value: coverageEndDate !== "N/A" ? formatDate(coverageEndDate) : null,
+      },
+      {
+        label: "Purchase Date",
+        value: purchaseDate !== "N/A" ? formatDate(purchaseDate) : null,
+      },
       {
         label: "Coverage Benefits",
         value: coverageBenefits,
-        condition: coverageBenefits,
+        condition: !!coverageBenefits,
       },
+      {
+        label: "Limited Warranty",
+        value:
+          limitedWarranty === "Yes"
+            ? "Yes"
+            : limitedWarranty === "No"
+              ? "No"
+              : null,
+        condition: !!limitedWarranty,
+      },
+      {
+        label: "Incidents Available",
+        value: incidentsAvailable,
+        condition: !!incidentsAvailable,
+      },
+      {
+        label: "Initial Unbrick",
+        value: initialUnbrick ? formatDate(initialUnbrick) : null,
+        condition: !!initialUnbrick,
+      },
+
+      // Status
+      { label: "Activation Status", value: activationStatus },
       {
         label: "Registration Status",
         value: registrationStatus,
-        condition: registrationStatus,
+        condition: !!registrationStatus,
       },
-      { label: "Replaced Device", value: replacedDevice },
       {
-        label: "iCloud Lock",
-        value: iCloudLock,
-        condition: iCloudLock !== "N/A",
+        label: "Replaced Device",
+        value: replacedDevice === "Yes" ? "Yes" : "No",
       },
+      { label: "Temp Coverage", value: tempCoverage === "Yes" ? "Yes" : null },
+      { label: "Open Repair", value: openRepair === "Yes" ? "Yes" : null },
+
+      // Lock Status
+      { label: "iCloud Lock", value: iCloudLock !== "N/A" ? iCloudLock : null },
       {
         label: "iCloud Status",
-        value: iCloudStatus,
-        condition: iCloudStatus !== "N/A",
+        value: iCloudStatus !== "N/A" ? iCloudStatus : null,
       },
-      { label: "MDM Lock", value: mdmLock, condition: mdmLock !== "N/A" },
-      {
-        label: "Unlock Status",
-        value: unlockStatus,
-        condition: unlockStatus !== "N/A",
-      },
+      { label: "MDM Lock", value: mdmLock !== "N/A" ? mdmLock : null },
       {
         label: "SIM Lock Status",
-        value: simlockStatus,
-        condition: simlockStatus !== "N/A",
+        value: simlockStatus !== "N/A" ? simlockStatus : null,
+      },
+      { label: "SIM Lock", value: simlock, condition: !!simlock },
+      {
+        label: "Unlock Status",
+        value: unlockStatus !== "N/A" ? unlockStatus : null,
+      },
+
+      // Carrier & Network
+      {
+        label: "Carrier Name",
+        value: carrierName !== "N/A" ? carrierName : null,
+      },
+      { label: "SIM1 Carrier", value: sim1Carrier, condition: !!sim1Carrier },
+
+      // Purchase Info
+      { label: "Sold To", value: soldToName, condition: !!soldToName },
+      {
+        label: "Purchase Country",
+        value: purchaseCountry || purchaseCountryCode,
+        condition: !!(purchaseCountry || purchaseCountryCode),
+      },
+
+      // GSX History
+      {
+        label: "GSX Replacement History",
+        value: gsxReplacementHistory,
+        condition: !!gsxReplacementHistory,
+      },
+
+      // Activation Policies
+      {
+        label: "Initial Activation Policy",
+        value: initialActivationPolicyDescription,
+        condition: !!initialActivationPolicyDescription,
       },
       {
-        label: "Carrier",
-        value: carrierName,
-        condition: carrierName !== "N/A",
+        label: "Last Activation Policy",
+        value: lastActivationPolicyDescription,
+        condition: !!lastActivationPolicyDescription,
       },
       {
-        label: "Temp Coverage",
-        value: tempCoverage,
-        condition: tempCoverage === "Yes",
+        label: "Next Activation Policy",
+        value: nextActivationPolicyDescription,
+        condition: !!nextActivationPolicyDescription,
       },
       {
-        label: "Open Repair",
-        value: openRepair,
-        condition: openRepair === "Yes",
+        label: "Next Tether Policy",
+        value: nextTetherPolicy,
+        condition: !!nextTetherPolicy,
       },
-      { label: "Notice", value: notice, condition: notice },
-      { label: "Serial Key", value: serialKey, condition: serialKey },
-      { label: "Risk Level", value: riskLevel.toUpperCase() },
-      { label: "Risk Score", value: `${riskScore}/100` },
+
+      // Notice
+      { label: "Notice", value: notice, condition: !!notice },
     ];
 
-    if (aiInsight?.message) {
-      fields.push({ label: "AI Insight", value: aiInsight.message });
-    }
+    return fields.filter((field) => {
+      const hasValue =
+        field.value !== null && field.value !== undefined && field.value !== "";
+      const conditionMet =
+        field.condition !== undefined ? field.condition : true;
+      return hasValue && conditionMet;
+    });
+  }, [extractedData]);
 
-    return fields
-      .filter(
-        (field) =>
-          field.condition !== false && field.value && field.value !== "N/A",
-      )
+  const visibleFields = showAllFields ? allFields : allFields.slice(0, 15);
+
+  // Generate copy text
+  const generateCopyText = useCallback(() => {
+    return allFields
       .map((field) => `${field.label}: ${field.value}`)
       .join("\n");
-  }, [
-    deviceName,
-    imeiValue,
-    imei2Value,
-    meidValue,
-    serialNumber,
-    eidNumber,
-    capacity,
-    color,
-    modelNumber,
-    partNumber,
-    activationStatus,
-    warrantyStatus,
-    coverageEndDate,
-    purchaseDate,
-    coverageBenefits,
-    registrationStatus,
-    replacedDevice,
-    iCloudLock,
-    iCloudStatus,
-    mdmLock,
-    unlockStatus,
-    simlockStatus,
-    carrierName,
-    tempCoverage,
-    openRepair,
-    notice,
-    serialKey,
-    riskLevel,
-    riskScore,
-    aiInsight,
-  ]);
+  }, [allFields]);
 
   const handleCopyToClipboard = useCallback(() => {
     const text = generateCopyText();
@@ -707,7 +801,7 @@ export const BulkResultView = ({
   if (!batchResult) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 p-4 md:p-6">
+    <div className="min-h-screen">
       <div className="max-w-4xl mx-auto">
         {/* Back Button */}
         <button
@@ -858,224 +952,24 @@ export const BulkResultView = ({
                   </div>
                 )}
 
-                {/* Device Name with Capacity & Color */}
-                <p>
-                  <span className="font-semibold">Model:</span> {deviceName}
-                  {capacity && ` ${capacity}`}
-                  {color && ` ${color}`}
-                </p>
-
-                {/* Product Description */}
-                {productDescription && productDescription !== deviceName && (
-                  <p className="text-xs text-slate-400">{productDescription}</p>
-                )}
-
-                <p>
-                  <span className="font-semibold">IMEI:</span> {imeiValue}
-                </p>
-
-                {imei2Value && imei2Value !== "N/A" && (
-                  <p>
-                    <span className="font-semibold">IMEI2:</span> {imei2Value}
+                {/* Display all fields */}
+                {visibleFields.map((field, idx) => (
+                  <p key={idx}>
+                    <span className="font-semibold">{field.label}:</span>{" "}
+                    {String(field.value)}
                   </p>
-                )}
+                ))}
 
-                {meidValue && meidValue !== "N/A" && (
-                  <p>
-                    <span className="font-semibold">MEID:</span> {meidValue}
-                  </p>
-                )}
-
-                <p>
-                  <span className="font-semibold">Serial Number:</span>{" "}
-                  {serialNumber}
-                </p>
-
-                {serialKey && serialKey !== "N/A" && (
-                  <p>
-                    <span className="font-semibold">Serial Key:</span>{" "}
-                    {serialKey}
-                  </p>
-                )}
-
-                {modelNumber !== "N/A" && (
-                  <p>
-                    <span className="font-semibold">Model Number:</span>{" "}
-                    {modelNumber}
-                  </p>
-                )}
-
-                {partNumber !== "N/A" && (
-                  <p>
-                    <span className="font-semibold">Part Number:</span>{" "}
-                    {partNumber}
-                  </p>
-                )}
-
-                {eidNumber && eidNumber !== "N/A" && (
-                  <p className="break-all">
-                    <span className="font-semibold">EID:</span> {eidNumber}
-                  </p>
-                )}
-
-                {/* SIM/Network Info */}
-                {carrierName !== "N/A" && (
-                  <p>
-                    <span className="font-semibold">Carrier:</span>{" "}
-                    {carrierName}
-                  </p>
-                )}
-
-                {unlockStatus !== "N/A" && (
-                  <p>
-                    <span className="font-semibold">Unlock Status:</span>{" "}
-                    <span
-                      className={
-                        unlockStatus === "UNLOCKED"
-                          ? "text-green-600"
-                          : "text-amber-600"
-                      }
-                    >
-                      {unlockStatus}
-                    </span>
-                  </p>
-                )}
-
-                {simlockStatus !== "N/A" && (
-                  <p>
-                    <span className="font-semibold">SIM Lock:</span>{" "}
-                    {simlockStatus}
-                  </p>
-                )}
-
-                {/* Security/Lock Status */}
-                {iCloudLock !== "N/A" && (
-                  <div className="flex flex-wrap items-center justify-center gap-2">
-                    <span className="font-semibold">iCloud Lock:</span>
-                    <span
-                      className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                        iCloudLock === "Unlocked"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {iCloudLock === "Unlocked" ? "🔓 UNLOCKED" : "🔒 LOCKED"}
-                    </span>
-                  </div>
-                )}
-
-                {iCloudStatus !== "N/A" && iCloudStatus !== "Not Found" && (
-                  <p>
-                    <span className="font-semibold">iCloud Status:</span>{" "}
-                    {iCloudStatus}
-                  </p>
-                )}
-
-                {mdmLock !== "N/A" && (
-                  <p>
-                    <span className="font-semibold">MDM Lock:</span>{" "}
-                    <span
-                      className={
-                        mdmLock === "Unlocked"
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }
-                    >
-                      {mdmLock}
-                    </span>
-                  </p>
-                )}
-
-                {/* Activation Status */}
-                <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-                  <span className="font-semibold">Activation:</span>
-                  <span
-                    className={`${
-                      activationStatus === "Activated"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-amber-100 text-amber-700"
-                    } px-2 py-0.5 rounded-md text-[10px] font-bold`}
+                {/* Show More / Show Less Button */}
+                {allFields.length > 15 && (
+                  <button
+                    onClick={() => setShowAllFields(!showAllFields)}
+                    className="text-primary text-sm font-semibold hover:underline mt-2"
                   >
-                    {activationStatus === "Activated"
-                      ? "✓ ACTIVATED"
-                      : activationStatus.toUpperCase()}
-                  </span>
-                </div>
-
-                {/* Warranty Section */}
-                <p>
-                  <span className="font-semibold">Warranty:</span>{" "}
-                  {warrantyStatus}
-                </p>
-
-                {purchaseDate !== "N/A" && (
-                  <p>
-                    <span className="font-semibold">Purchase Date:</span>{" "}
-                    {formatDate(purchaseDate)}
-                  </p>
-                )}
-
-                {coverageEndDate !== "N/A" && (
-                  <p>
-                    <span className="font-semibold">Coverage End:</span>{" "}
-                    {formatDate(coverageEndDate)}
-                  </p>
-                )}
-
-                {coverageBenefits && coverageBenefits !== "N/A" && (
-                  <p>
-                    <span className="font-semibold">Coverage Benefits:</span>{" "}
-                    {coverageBenefits}
-                  </p>
-                )}
-
-                {/* Registration Status */}
-                {registrationStatus && registrationStatus !== "N/A" && (
-                  <div className="flex flex-wrap items-center justify-center gap-2">
-                    <span className="font-semibold">Registration:</span>
-                    <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                      {registrationStatus.toUpperCase()}
-                    </span>
-                  </div>
-                )}
-
-                {/* Notices */}
-                {notice && (
-                  <p className="text-amber-600 text-xs">
-                    <span className="font-semibold">Notice:</span> {notice}
-                  </p>
-                )}
-
-                {/* Status Flags */}
-                <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-                  <span className="font-semibold">Replaced Device:</span>
-                  <span
-                    className={`${
-                      replacedDevice === "No"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-red-100 text-red-700"
-                    } px-2 py-0.5 rounded-md text-[10px] font-bold uppercase`}
-                  >
-                    {replacedDevice === "No" ? "✓ NO" : "⚠ YES"}
-                  </span>
-                </div>
-
-                {tempCoverage === "Yes" && (
-                  <div className="flex flex-wrap items-center justify-center gap-2">
-                    <span className="font-semibold">Temp Coverage:</span>
-                    <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                      {tempCoverage}
-                    </span>
-                  </div>
-                )}
-
-                {openRepair === "Yes" && (
-                  <div className="flex flex-wrap items-center justify-center gap-2">
-                    <span className="font-semibold">Open Repair:</span>
-                    <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                      ⚠ OPEN REPAIR
-                    </span>
-                  </div>
+                    {showAllFields
+                      ? "Show Less"
+                      : `Show More (${allFields.length - 15} more)`}
+                  </button>
                 )}
 
                 {/* Risk Meter Section */}
