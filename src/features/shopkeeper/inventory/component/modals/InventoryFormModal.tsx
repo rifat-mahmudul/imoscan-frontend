@@ -305,6 +305,7 @@ interface InventoryFormModalProps {
   onClose: () => void;
   item?: InventoryItem | null;
   forceType?: "inventory" | "sold";
+  categoryId?: string;
 }
 
 export function InventoryFormModal({
@@ -312,6 +313,7 @@ export function InventoryFormModal({
   onClose,
   item,
   forceType,
+  categoryId,
 }: InventoryFormModalProps) {
   const isEditMode = !!item;
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -608,6 +610,7 @@ export function InventoryFormModal({
         saleQuantity: item.saleQuantity ?? 1,
         saleMethod: item.saleMethod ?? "In-store",
         image: undefined, // Reset image on edit
+        categoryId: item.categoryId ?? categoryId ?? "",
       });
 
       // Check if brand is custom
@@ -679,6 +682,7 @@ export function InventoryFormModal({
         saleQuantity: 1,
         saleMethod: "In-store",
         image: undefined,
+        categoryId: categoryId ?? "",
       });
       setIsCustomBrand(false);
       setIsCustomCondition(false);
@@ -686,7 +690,7 @@ export function InventoryFormModal({
       setIsCustomColor(false);
       setIsCustomSaleMethod(false);
     }
-  }, [item, form, isOpen, forceType]);
+  }, [item, form, isOpen, forceType, categoryId]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -783,6 +787,7 @@ export function InventoryFormModal({
           id: item._id,
           input: {
             ...values,
+            categoryId: values.categoryId || categoryId,
           },
         },
         {
@@ -795,7 +800,10 @@ export function InventoryFormModal({
       );
     } else if (scannedItemId) {
       updateItem(
-        { id: scannedItemId, input: values },
+        {
+          id: scannedItemId,
+          input: { ...values, categoryId: values.categoryId || categoryId },
+        },
         {
           onSuccess: () => {
             toast.success("Item updated successfully");
@@ -811,7 +819,11 @@ export function InventoryFormModal({
       );
     } else {
       createItem(
-        { ...values, userId: (session?.user as { id: string })?.id ?? "" },
+        {
+          ...values,
+          categoryId: values.categoryId || categoryId,
+          userId: (session?.user as { id: string })?.id ?? "",
+        },
         {
           onSuccess: () => {
             toast.success("Item created successfully");

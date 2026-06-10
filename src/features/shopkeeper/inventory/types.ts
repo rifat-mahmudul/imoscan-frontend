@@ -4,6 +4,7 @@ import { z } from "zod";
 
 export const InventoryItemSchema = z.object({
   _id: z.string(),
+  categoryId: z.string().optional(),
   itemName: z.string(),
   sku: z.string().optional(),
   brand: z.string().optional(),
@@ -75,6 +76,7 @@ export const InventorySingleResponseSchema = z.object({
 });
 
 export const CreateInventorySchema = z.object({
+  categoryId: z.string().optional(),
   itemName: z.string().min(1, "Item name is required"),
   sku: z.string().optional(),
   brand: z.string().optional(),
@@ -109,6 +111,7 @@ export const CreateInventorySchema = z.object({
 });
 
 export const UpdateInventorySchema = z.object({
+  categoryId: z.string().optional(),
   itemName: z.string().min(1, "Item name is required").optional(),
   sku: z.string().optional(),
   brand: z.string().optional(),
@@ -193,6 +196,42 @@ export const CreateSoldProductSchema = z.object({
   image: z.any().optional(),
 });
 
+export const CategorySchema = z.object({
+  _id: z.string(),
+  name: z.string(),
+  image: z
+    .union([
+      z.string(),
+      z.object({
+        public_id: z.string().optional(),
+        url: z.string().optional(),
+      }),
+    ])
+    .optional()
+    .nullable(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
+export const CategoryListResponseSchema = z.object({
+  success: z.boolean().optional(),
+  message: z.string().optional(),
+  statusCode: z.number().optional(),
+  data: z.array(CategorySchema),
+});
+
+export const CategorySingleResponseSchema = z.object({
+  success: z.boolean().optional(),
+  message: z.string().optional(),
+  statusCode: z.number().optional(),
+  data: CategorySchema,
+});
+
+export const CategoryInputSchema = z.object({
+  name: z.string().min(1, "Category name is required"),
+  image: z.any().optional(),
+});
+
 // ================= TYPES =================
 
 export interface InvoiceFile {
@@ -252,6 +291,12 @@ export type InventorySingleResponse = z.infer<
 >;
 export type CreateInventoryInput = z.infer<typeof CreateInventorySchema>;
 export type UpdateInventoryInput = z.infer<typeof UpdateInventorySchema>;
+export type Category = z.infer<typeof CategorySchema>;
+export type CategoryListResponse = z.infer<typeof CategoryListResponseSchema>;
+export type CategorySingleResponse = z.infer<
+  typeof CategorySingleResponseSchema
+>;
+export type CategoryInput = z.infer<typeof CategoryInputSchema>;
 
 export type SoldProduct = z.infer<typeof SoldProductSchema>;
 export type SoldProductListResponse = z.infer<
