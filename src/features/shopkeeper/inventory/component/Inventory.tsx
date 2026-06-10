@@ -10,15 +10,22 @@ import {
   Edit2,
   Package,
   ShoppingCart,
-  Upload,
+  ArrowLeft,
+  FolderOpen,
+  ImageIcon,
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import {
   INVENTORY_KEYS,
-  useMyInventory,
+  useInventoryByCategory,
   useDeleteInventory,
   useShopkeeperCart,
+  useCategories,
+  useCreateCategory,
+  useUpdateCategory,
+  useDeleteCategory,
 } from "../hooks/useInventory";
 import { useSession } from "next-auth/react";
 import axiosInstance from "@/lib/instance/axios-instance";
@@ -29,7 +36,7 @@ import { InventorySkeleton } from "./skeletons/InventorySkeleton";
 import { InventoryFormModal } from "./modals/InventoryFormModal";
 import { InventoryDetailsModal } from "./modals/InventoryDetailsModal";
 import { ImportCsvTab } from "./ImportCsvTab";
-import type { InventoryItem } from "../types";
+import type { Category, InventoryItem } from "../types";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -37,14 +44,57 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 type ActiveTab = "inventory" | "import-csv";
 
 const SELL_QUANTITY = 1;
 
+const getCategoryImageSrc = (src: string) => {
+  if (src.startsWith("http://") || src.startsWith("https://")) {
+    return `/api/image-proxy?url=${encodeURIComponent(src)}`;
+  }
+
+  return src;
+};
+
+const getCategoryImageUrl = (category: Category) => {
+  if (!category.image) return "";
+
+  if (typeof category.image === "string") {
+    return category.image;
+  }
+
+  return category.image.url ?? "";
+};
+
 export default function Inventory() {
-  const { data: inventoryData, isLoading, isError } = useMyInventory();
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
+    null,
+  );
+  const {
+    data: categoriesData,
+    isLoading: isCategoriesLoading,
+    isError: isCategoriesError,
+  } = useCategories();
+  const {
+    data: inventoryData,
+    isLoading: isInventoryLoading,
+    isError: isInventoryError,
+  } = useInventoryByCategory(selectedCategory?._id);
   const { mutate: deleteItem } = useDeleteInventory();
+  const { mutate: createCategory, isPending: isCreatingCategory } =
+    useCreateCategory();
+  const { mutate: updateCategory, isPending: isUpdatingCategory } =
+    useUpdateCategory();
+  const { mutate: deleteCategory } = useDeleteCategory();
   const { data: session } = useSession();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -52,6 +102,13 @@ export default function Inventory() {
   const { data: cartData } = useShopkeeperCart(shopkeeperId);
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("inventory");
+  const [isCategoryFormOpen, setIsCategoryFormOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [categoryName, setCategoryName] = useState("");
+  const [categoryImageFile, setCategoryImageFile] = useState<File | null>(null);
+  const [categoryImagePreview, setCategoryImagePreview] = useState("");
+
+  const categories = categoriesData?.data || [];
 
   const cartItems = cartData?.data || [];
   const cartQuantity = cartItems.reduce(
@@ -85,8 +142,6 @@ export default function Inventory() {
       );
     }
   };
-
-  console.log(inventoryData);
 
   const items = useMemo(() => {
     return (inventoryData?.data || []).filter(
@@ -134,18 +189,242 @@ export default function Inventory() {
     });
   };
 
-  if (isLoading) return <InventorySkeleton />;
-  if (isError)
+  const openCategoryForm = (category?: Category) => {
+    setEditingCategory(category ?? null);
+    setCategoryName(category?.name ?? "");
+    setCategoryImageFile(null);
+    setCategoryImagePreview(category ? getCategoryImageUrl(category) : "");
+    setIsCategoryFormOpen(true);
+  };
+
+  const closeCategoryForm = () => {
+    if (categoryImagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(categoryImagePreview);
+    }
+    setIsCategoryFormOpen(false);
+    setEditingCategory(null);
+    setCategoryName("");
+    setCategoryImageFile(null);
+    setCategoryImagePreview("");
+  };
+
+  const handleCategoryImageChange = (file: File | null) => {
+    if (categoryImagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(categoryImagePreview);
+    }
+
+    if (!file) {
+      setCategoryImageFile(null);
+      setCategoryImagePreview(
+        editingCategory ? getCategoryImageUrl(editingCategory) : "",
+      );
+      return;
+    }
+
+    setCategoryImageFile(file);
+    setCategoryImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleCategorySubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const input = {
+      name: categoryName.trim(),
+      image: categoryImageFile ?? undefined,
+    };
+
+    if (!input.name) {
+      toast.error("Category name is required");
+      return;
+    }
+
+    if (editingCategory) {
+      updateCategory(
+        { id: editingCategory._id, input },
+        {
+          onSuccess: (response) => {
+            toast.success("Category updated successfully");
+            if (selectedCategory?._id === editingCategory._id) {
+              setSelectedCategory(response.data);
+            }
+            closeCategoryForm();
+          },
+          onError: () => toast.error("Category update failed"),
+        },
+      );
+      return;
+    }
+
+    createCategory(input, {
+      onSuccess: () => {
+        toast.success("Category created successfully");
+        closeCategoryForm();
+      },
+      onError: () => toast.error("Category creation failed"),
+    });
+  };
+
+  const handleCategoryDelete = (category: Category) => {
+    if (!window.confirm(`Delete "${category.name}" category?`)) return;
+
+    deleteCategory(category._id, {
+      onSuccess: () => {
+        toast.success("Category deleted");
+        if (selectedCategory?._id === category._id) {
+          setSelectedCategory(null);
+        }
+      },
+      onError: () => toast.error("Category delete failed"),
+    });
+  };
+
+  if (!selectedCategory && isCategoriesLoading) return <InventorySkeleton />;
+  if (selectedCategory && isInventoryLoading) return <InventorySkeleton />;
+  if ((!selectedCategory && isCategoriesError) || isInventoryError)
     return (
       <div className="p-10 text-center">
         <h2 className="text-xl font-bold text-red-500">
-          Failed to load inventory
+          Failed to load {selectedCategory ? "inventory" : "categories"}
         </h2>
         <p className="text-slate-500">
           Please check your connection or login again.
         </p>
       </div>
     );
+
+  if (!selectedCategory) {
+    return (
+      <div className="p-4 md:p-10 max-w-[1600px] mx-auto space-y-8 font-poppins relative dark:bg-background">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-black dark:text-white text-[#0F172A] tracking-tight">
+              Inventory Categories
+            </h1>
+            <p className="text-[#64748B] font-bold text-sm dark:text-white">
+              {categories.length} categor{categories.length === 1 ? "y" : "ies"}{" "}
+              available
+            </p>
+          </div>
+
+          <button
+            onClick={() => openCategoryForm()}
+            className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#84CC16] px-6 text-sm font-black text-white shadow-lg shadow-lime-500/20 transition hover:bg-[#76b813] active:scale-95"
+          >
+            <Plus size={18} strokeWidth={3} />
+            Add Category
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          {categories.length > 0 ? (
+            categories.map((category, index) => {
+              const categoryImageUrl = getCategoryImageUrl(category);
+
+              return (
+                <motion.div
+                  key={category._id}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.04 }}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedCategory(category)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      setSelectedCategory(category);
+                    }
+                  }}
+                  className="group overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition hover:-translate-y-1 hover:border-[#84CC16]/50 hover:shadow-lg dark:bg-card cursor-pointer"
+                >
+                  <div className="relative h-40 bg-slate-100 dark:bg-slate-900">
+                    {categoryImageUrl ? (
+                      <img
+                        src={getCategoryImageSrc(categoryImageUrl)}
+                        alt={category.name}
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-slate-300">
+                        <FolderOpen size={52} strokeWidth={1.8} />
+                      </div>
+                    )}
+                    <div className="absolute right-3 top-3">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            onClick={(event) => event.stopPropagation()}
+                            className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/90 text-slate-500 shadow-sm backdrop-blur transition hover:text-slate-900"
+                            aria-label={`Manage ${category.name}`}
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="rounded-xl border-slate-100 p-2 shadow-xl"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <DropdownMenuItem
+                            onClick={() => openCategoryForm(category)}
+                            className="flex items-center gap-2 p-3 font-bold text-xs rounded-lg cursor-pointer"
+                          >
+                            <Edit2 size={14} />
+                            Edit Category
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleCategoryDelete(category)}
+                            className="flex items-center gap-2 p-3 font-bold text-xs rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                          >
+                            <Trash2 size={14} />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4 p-5">
+                    <div className="min-w-0">
+                      <h2 className="truncate text-lg font-black text-[#0F172A] dark:text-white">
+                        {category.name}
+                      </h2>
+                      <p className="mt-1 text-xs font-bold text-slate-400">
+                        Open inventory
+                      </p>
+                    </div>
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#84CC16]/10 text-[#84CC16]">
+                      <Package size={18} strokeWidth={2.5} />
+                    </span>
+                  </div>
+                </motion.div>
+              );
+            })
+          ) : (
+            <div className="col-span-full rounded-[28px] border border-dashed border-slate-200 bg-slate-50 py-20 text-center dark:border-slate-700 dark:bg-slate-900/40">
+              <FolderOpen className="mx-auto mb-4 h-12 w-12 text-slate-300" />
+              <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                No categories found
+              </h3>
+              <p className="text-sm font-bold text-slate-500">
+                Create a category to organize inventory items.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <CategoryFormDialog
+          isOpen={isCategoryFormOpen}
+          category={editingCategory}
+          name={categoryName}
+          imagePreview={categoryImagePreview}
+          isPending={isCreatingCategory || isUpdatingCategory}
+          onNameChange={setCategoryName}
+          onImageChange={handleCategoryImageChange}
+          onClose={closeCategoryForm}
+          onSubmit={handleCategorySubmit}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-10 max-w-[1600px] mx-auto space-y-8 font-poppins relative dark:bg-background">
@@ -155,7 +434,7 @@ export default function Inventory() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-3xl font-black dark:text-white text-[#0F172A] tracking-tight">
-              Inventory
+              {selectedCategory.name}
             </h1>
             <p className="text-[#64748B] font-bold text-sm dark:text-white">
               {totalQuantity} Units in Stock ({items.length} Models) - $
@@ -166,6 +445,20 @@ export default function Inventory() {
           {/* Action buttons — only on inventory tab */}
           {activeTab === "inventory" && (
             <div className="flex items-center gap-4">
+              <button
+                onClick={() => {
+                  setSelectedCategory(null);
+                  setSearchQuery("");
+                  setActiveTab("inventory");
+                }}
+                className="flex h-12 items-center gap-3 rounded-xl border border-slate-100 bg-white px-4 text-[#0F172A] shadow-sm transition hover:border-[#84CC16]/50 hover:bg-[#84CC16]/5 active:scale-95 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
+                aria-label="Back to categories"
+              >
+                <ArrowLeft size={18} strokeWidth={2.6} />
+                <span className="hidden text-sm font-black sm:inline">
+                  Categories
+                </span>
+              </button>
               <button
                 onClick={() => router.push("/shopkeeper/cart")}
                 className="relative flex h-12 items-center gap-3 rounded-xl border border-slate-100 bg-white px-4 text-[#0F172A] shadow-sm transition hover:border-[#84CC16]/50 hover:bg-[#84CC16]/5 active:scale-95 dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
@@ -413,7 +706,136 @@ export default function Inventory() {
         }}
         item={editingItem}
         forceType={formForceType}
+        categoryId={selectedCategory._id}
+      />
+      <CategoryFormDialog
+        isOpen={isCategoryFormOpen}
+        category={editingCategory}
+        name={categoryName}
+        imagePreview={categoryImagePreview}
+        isPending={isCreatingCategory || isUpdatingCategory}
+        onNameChange={setCategoryName}
+        onImageChange={handleCategoryImageChange}
+        onClose={closeCategoryForm}
+        onSubmit={handleCategorySubmit}
       />
     </div>
+  );
+}
+
+function CategoryFormDialog({
+  isOpen,
+  category,
+  name,
+  imagePreview,
+  isPending,
+  onNameChange,
+  onImageChange,
+  onClose,
+  onSubmit,
+}: {
+  isOpen: boolean;
+  category: Category | null;
+  name: string;
+  imagePreview: string;
+  isPending: boolean;
+  onNameChange: (value: string) => void;
+  onImageChange: (file: File | null) => void;
+  onClose: () => void;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md rounded-2xl border-slate-100 p-0 overflow-hidden">
+        <DialogHeader className="border-b border-slate-100 px-6 py-5 text-left">
+          <DialogTitle className="text-xl font-black text-slate-900">
+            {category ? "Edit Category" : "Create Category"}
+          </DialogTitle>
+          <DialogDescription className="text-sm font-medium text-slate-500">
+            Categories organize inventory before products are shown.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={onSubmit} className="space-y-5 p-6">
+          <div className="space-y-2">
+            <label className="ml-1 block text-[10px] font-black uppercase tracking-widest text-slate-700">
+              Name <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <FolderOpen className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                value={name}
+                onChange={(event) => onNameChange(event.target.value)}
+                placeholder="Electronics"
+                className="h-12 rounded-xl border-slate-200 pl-11 font-bold"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="ml-1 block text-[10px] font-black uppercase tracking-widest text-slate-700">
+              Category Image
+            </label>
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4">
+              {imagePreview ? (
+                <div
+                  className="mb-4 h-40 rounded-xl bg-cover bg-center"
+                  style={{
+                    backgroundImage: `url("${getCategoryImageSrc(imagePreview)}")`,
+                  }}
+                  aria-label="Selected category image preview"
+                  role="img"
+                />
+              ) : (
+                <div className="mb-4 flex h-40 items-center justify-center rounded-xl bg-white text-slate-300">
+                  <ImageIcon size={40} strokeWidth={1.8} />
+                </div>
+              )}
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:bg-slate-100">
+                  <ImageIcon size={16} />
+                  Choose Image
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => {
+                      onImageChange(event.target.files?.[0] ?? null);
+                      event.target.value = "";
+                    }}
+                  />
+                </label>
+                {imagePreview && (
+                  <button
+                    type="button"
+                    onClick={() => onImageChange(null)}
+                    className="h-11 rounded-xl px-4 text-sm font-black text-slate-500 transition hover:bg-white hover:text-red-500"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-11 rounded-xl border border-slate-200 px-5 text-sm font-black text-slate-600 transition hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="flex h-11 min-w-28 items-center justify-center gap-2 rounded-xl bg-[#84CC16] px-5 text-sm font-black text-white transition hover:bg-[#76b813] disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {category ? "Update" : "Create"}
+            </button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
