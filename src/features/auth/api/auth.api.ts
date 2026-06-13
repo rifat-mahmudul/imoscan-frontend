@@ -34,6 +34,7 @@ export const loginUserApi = async (
 /**
  * Verify email with OTP
  */
+
 export const verifyEmailApi = async (
   otp: string,
   token?: string,

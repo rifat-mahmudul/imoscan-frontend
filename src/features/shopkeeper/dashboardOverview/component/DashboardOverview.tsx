@@ -15,6 +15,8 @@ import {
   Percent,
   Wallet,
   ChevronDown,
+  Banknote,
+  BadgeDollarSign,
 } from "lucide-react";
 import {
   LineChart,
@@ -119,6 +121,15 @@ const statsByPeriod = {
       color:
         "bg-amber-50 dark:bg-amber-950/20 text-amber-500 dark:text-amber-400",
     },
+
+    {
+      label: "Avg Order Value",
+      value: "£71.82",
+      trend: "↑ 2%",
+      icon: Percent,
+      color:
+        "bg-amber-50 dark:bg-amber-950/20 text-amber-500 dark:text-amber-400",
+    },
   ],
   weekly: [
     {
@@ -149,6 +160,22 @@ const statsByPeriod = {
       value: "£75.68",
       trend: "↑ 3%",
       icon: Percent,
+      color:
+        "bg-amber-50 dark:bg-amber-950/20 text-amber-500 dark:text-amber-400",
+    },
+    {
+      label: "Cash in Drawer",
+      value: "$2,350",
+      trend: "↑ 2%",
+      icon: BadgeDollarSign,
+      color:
+        "bg-amber-50 dark:bg-amber-950/20 text-amber-500 dark:text-amber-400",
+    },
+    {
+      label: "Banked",
+      value: "$8,250",
+      trend: "↑ 2%",
+      icon: Banknote,
       color:
         "bg-amber-50 dark:bg-amber-950/20 text-amber-500 dark:text-amber-400",
     },
@@ -185,6 +212,22 @@ const statsByPeriod = {
       color:
         "bg-amber-50 dark:bg-amber-950/20 text-amber-500 dark:text-amber-400",
     },
+    {
+      label: "Cash in Drawer",
+      value: "$2,350",
+      trend: "↑ 2%",
+      icon: BadgeDollarSign,
+      color:
+        "bg-amber-50 dark:bg-amber-950/20 text-amber-500 dark:text-amber-400",
+    },
+    {
+      label: "Banked",
+      value: "$8,250",
+      trend: "↑ 2%",
+      icon: Banknote,
+      color:
+        "bg-amber-50 dark:bg-amber-950/20 text-amber-500 dark:text-amber-400",
+    },
   ],
   yearly: [
     {
@@ -218,11 +261,49 @@ const statsByPeriod = {
       color:
         "bg-amber-50 dark:bg-amber-950/20 text-amber-500 dark:text-amber-400",
     },
+    {
+      label: "Cash in Drawer",
+      value: "$2,350",
+      trend: "↑ 2%",
+      icon: BadgeDollarSign,
+      color:
+        "bg-amber-50 dark:bg-amber-950/20 text-amber-500 dark:text-amber-400",
+    },
+    {
+      label: "Banked",
+      value: "$8,250",
+      trend: "↑ 2%",
+      icon: Banknote,
+      color:
+        "bg-amber-50 dark:bg-amber-950/20 text-amber-500 dark:text-amber-400",
+    },
   ],
 };
 
 export default function DashboardOverview() {
   const [period, setPeriod] = useState<Period>("monthly");
+  const [startingCash, setStartingCash] = useState("");
+  const [cashInDrawer, setCashInDrawer] = useState("$2,350");
+
+  const handleStartingCashSubmit = (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+
+    const cashValue = Number(startingCash);
+
+    if (!startingCash || Number.isNaN(cashValue)) {
+      return;
+    }
+
+    setCashInDrawer(
+      new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0,
+      }).format(cashValue),
+    );
+  };
 
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-8 font-poppins bg-[#F8FAFC] dark:bg-slate-950 min-h-screen text-slate-800 dark:text-slate-100 transition-colors duration-300">
@@ -239,9 +320,95 @@ export default function DashboardOverview() {
       </div>
 
       {/* Main Responsive Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column (lg:col-span-5) */}
-        <div className="lg:col-span-5 space-y-6">
+      <div className="gap-8 ">
+        <div className=" grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <CashManagementScore />
+          <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div className="p-2.5 rounded-2xl bg-amber-50 dark:bg-amber-950/20 text-amber-500 dark:text-amber-400 flex-shrink-0">
+                  <BadgeDollarSign className="w-5 h-5" />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                  Starting Day Cash
+                </span>
+
+                <div className="flex items-baseline justify-between mt-1">
+                  <span className="text-2xl font-extrabold text-slate-800 dark:text-white">
+                    {cashInDrawer}
+                  </span>
+
+                  <div className="text-right flex flex-col items-end">
+                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full">
+                      ↑ 2%
+                    </span>
+
+                    <span className="text-[9px] text-slate-400 font-medium mt-0.5">
+                      vs last month
+                    </span>
+                  </div>
+                </div>
+
+                <form
+                  onSubmit={handleStartingCashSubmit}
+                  className="mt-4 flex flex-col sm:flex-row gap-2"
+                >
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={startingCash}
+                    onChange={(event) => setStartingCash(event.target.value)}
+                    placeholder="Enter starting cash"
+                    className="min-w-0 flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-800 dark:text-white outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 dark:focus:ring-amber-950/40"
+                  />
+
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-amber-600"
+                  >
+                    Submit
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div className="p-2.5 rounded-2xl bg-amber-50 dark:bg-amber-950/20 text-amber-500 dark:text-amber-400 flex-shrink-0">
+                  <Banknote className="w-5 h-5" />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                  Banked
+                </span>
+
+                <div className="flex items-baseline justify-between mt-1">
+                  <span className="text-2xl font-extrabold text-slate-800 dark:text-white">
+                    $8,250
+                  </span>
+
+                  <div className="text-right flex flex-col items-end">
+                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full">
+                      ↑ 2%
+                    </span>
+
+                    <span className="text-[9px] text-slate-400 font-medium mt-0.5">
+                      vs last month
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid mt-10 grid-cols-1 lg:grid-cols-2 gap-8">
           <BusinessHealthScore />
           <ScoreBreakdown />
           <AIInsightSummary />
@@ -345,6 +512,140 @@ function BusinessHealthScore() {
         </button>
         <span className="font-bold text-slate-800 dark:text-white text-sm">
           Business Health Score
+        </span>
+        <button className="p-1 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-slate-400">
+          <Info className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Gauge SVG */}
+      <div className="relative w-64 h-44 flex items-center justify-center mt-2">
+        <svg className="w-full h-full" viewBox="0 0 200 160">
+          <defs>
+            <linearGradient
+              id="gauge-gradient"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="0%"
+            >
+              <stop offset="0%" stopColor="#EF4444" />
+              <stop offset="35%" stopColor="#F59E0B" />
+              <stop offset="70%" stopColor="#84CC16" />
+              <stop offset="100%" stopColor="#10B981" />
+            </linearGradient>
+            <filter
+              id="needle-shadow"
+              x="-20%"
+              y="-20%"
+              width="140%"
+              height="140%"
+            >
+              <feDropShadow
+                dx="0"
+                dy="2"
+                stdDeviation="1.5"
+                floodOpacity="0.15"
+              />
+            </filter>
+          </defs>
+
+          {/* Background Arc */}
+          <path
+            d="M 35 130 A 75 75 0 1 1 165 130"
+            fill="none"
+            stroke="#F1F5F9"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            className="stroke-slate-100 dark:stroke-slate-800"
+          />
+
+          {/* Active Arc */}
+          <path
+            d="M 35 130 A 75 75 0 1 1 165 130"
+            fill="none"
+            stroke="url(#gauge-gradient)"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+          />
+
+          {/* Needle Pointer pointing inwards from outer edge */}
+          <g transform={`rotate(${needleRotation}, 100, 100)`}>
+            <path
+              d="M 96 12 L 104 12 L 100 24 Z"
+              fill="#0F172A"
+              className="fill-slate-900 dark:fill-white"
+              filter="url(#needle-shadow)"
+            />
+          </g>
+
+          {/* Labels for 0 and 100 */}
+          <text
+            x="32"
+            y="146"
+            textAnchor="middle"
+            className="text-[10px] font-bold fill-slate-400"
+          >
+            0
+          </text>
+          <text
+            x="168"
+            y="146"
+            textAnchor="middle"
+            className="text-[10px] font-bold fill-slate-400"
+          >
+            100
+          </text>
+        </svg>
+
+        {/* Center Text */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pt-8">
+          <span className="text-5xl font-black text-slate-800 dark:text-white tracking-tight">
+            92
+          </span>
+          <span className="text-xs font-semibold text-slate-400 mt-0.5">
+            /100
+          </span>
+        </div>
+      </div>
+
+      {/* Excellent Badge */}
+      <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 px-3.5 py-1 rounded-full text-xs font-bold mt-2 shadow-sm border border-emerald-100 dark:border-emerald-900/50">
+        <Star className="w-3.5 h-3.5 fill-emerald-600 stroke-emerald-600 dark:fill-emerald-400 dark:stroke-emerald-400" />
+        <span>Excellent</span>
+      </div>
+
+      {/* Description */}
+      <p className="text-xs text-slate-500 dark:text-slate-400 text-center font-medium mt-4 max-w-[220px] leading-relaxed">
+        Your business is performing better than{" "}
+        <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+          84%
+        </span>{" "}
+        of similar shops using imoscan.
+      </p>
+    </div>
+  );
+}
+
+function CashManagementScore() {
+  const score = 92;
+  const radius = 75;
+  const strokeWidth = 12;
+  const circumference = 2 * Math.PI * radius * (240 / 360);
+  const strokeDashoffset = circumference - (score / 100) * circumference;
+  const needleRotation = (score - 50) * 2.4;
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800/80 shadow-sm p-6 flex flex-col items-center">
+      {/* Header */}
+      <div className="w-full flex items-center justify-between mb-4">
+        <button className="p-1 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-slate-400">
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <span className="font-bold text-slate-800 dark:text-white text-sm">
+          Cash Management Score
         </span>
         <button className="p-1 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-slate-400">
           <Info className="w-5 h-5" />
@@ -574,7 +875,7 @@ function SalesByCategory() {
   ];
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800/80 shadow-sm p-6">
+    <div className="bg-white mb-10 dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800/80 shadow-sm p-6">
       <div className="flex items-center justify-between mb-4">
         <span className="font-bold text-slate-800 dark:text-white text-base">
           Sales by Category
