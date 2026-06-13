@@ -1312,14 +1312,6 @@ export const SingleResultView = ({
           <ArrowLeft size={18} /> Back to scan
         </button>
 
-        {provider && (
-          <div className="mb-3 flex justify-end">
-            <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-full">
-              Provider: {provider === "sickw" ? "Sickw" : "Apple Official"}
-            </span>
-          </div>
-        )}
-
         {oldGenerated && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
