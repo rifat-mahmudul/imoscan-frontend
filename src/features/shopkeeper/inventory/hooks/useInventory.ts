@@ -104,6 +104,7 @@ export function useCreateInvoice() {
       invoice: File;
       customerInfo?: string;
       itemsIds?: string[];
+      dueAmount?: number;
     }) => createInvoice(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: INVENTORY_KEYS.all });

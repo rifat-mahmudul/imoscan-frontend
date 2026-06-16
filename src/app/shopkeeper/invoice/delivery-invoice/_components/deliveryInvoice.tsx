@@ -392,6 +392,7 @@ export default function DeliveryInvoice() {
           type: "delivery Note",
           invoice: file,
           itemsIds: selectedDeviceIds,
+          dueAmount: totalPrice,
         },
         {
           onSuccess: () => {

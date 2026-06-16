@@ -137,12 +137,15 @@ export const createInvoice = async (input: {
   invoice: File;
   customerInfo?: string;
   itemsIds?: string[];
+  dueAmount?: number;
 }) => {
   const formData = new FormData();
 
   formData.append("shopkeeperId", input.shopkeeperId);
   formData.append("type", input.type);
   formData.append("invoice", input.invoice);
+  console.log(input.dueAmount);
+  if (input.dueAmount) formData.append("dueAmount", String(input.dueAmount));
 
   if (input.customerInfo) formData.append("customerInfo", input.customerInfo);
   if (input.itemsIds?.length) {

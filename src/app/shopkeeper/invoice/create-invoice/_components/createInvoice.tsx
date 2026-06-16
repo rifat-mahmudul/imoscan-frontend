@@ -587,6 +587,7 @@ export default function CreateInvoice() {
           type: "Custom invoice",
           invoice: file,
           itemsIds: selectedDeviceIds,
+          dueAmount: totalPrice,
         },
         {
           onSuccess: () => {
