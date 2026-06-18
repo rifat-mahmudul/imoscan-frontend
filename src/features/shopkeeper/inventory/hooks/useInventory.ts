@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getMyInventory,
+  getInventoryByCategory,
+  getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
   createInventory,
   updateInventory,
   deleteInventory,
@@ -21,19 +26,74 @@ import type {
   CreateFromBarcodeBulkInput,
   InvoiceHistoryResponse,
   CartListResponse,
+  CategoryInput,
+  CategoryListResponse,
 } from "../types";
 
 export const INVENTORY_KEYS = {
   all: ["inventory"] as const,
   myInventory: () => [...INVENTORY_KEYS.all, "my-inventory"] as const,
+  byCategory: (categoryId: string) =>
+    [...INVENTORY_KEYS.all, "category", categoryId] as const,
   shopkeeperCart: (shopkeeperId: string) =>
     [...INVENTORY_KEYS.all, "shopkeeper-cart", shopkeeperId] as const,
+};
+
+export const CATEGORY_KEYS = {
+  all: ["categories"] as const,
 };
 
 export function useMyInventory() {
   return useQuery({
     queryKey: INVENTORY_KEYS.myInventory(),
     queryFn: getMyInventory,
+  });
+}
+
+export function useInventoryByCategory(categoryId?: string) {
+  return useQuery({
+    queryKey: INVENTORY_KEYS.byCategory(categoryId || ""),
+    queryFn: () => getInventoryByCategory(categoryId || ""),
+    enabled: !!categoryId,
+  });
+}
+
+export function useCategories() {
+  return useQuery<CategoryListResponse>({
+    queryKey: CATEGORY_KEYS.all,
+    queryFn: getCategories,
+  });
+}
+
+export function useCreateCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CategoryInput) => createCategory(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CATEGORY_KEYS.all });
+    },
+  });
+}
+
+export function useUpdateCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: CategoryInput }) =>
+      updateCategory({ id, input }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CATEGORY_KEYS.all });
+    },
+  });
+}
+
+export function useDeleteCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteCategory(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CATEGORY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: INVENTORY_KEYS.all });
+    },
   });
 }
 

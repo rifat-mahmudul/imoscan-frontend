@@ -6,12 +6,69 @@ import type {
   CreateFromBarcodeBulkInput,
   InvoiceHistoryResponse,
   CartListResponse,
+  CategoryInput,
+  CategoryListResponse,
+  CategorySingleResponse,
 } from "../types";
 
 const BASE = "/inventory";
+const CATEGORY_BASE = "/category";
 
 export const getMyInventory = async (): Promise<InventoryListResponse> => {
   const response = await api.get(`${BASE}/my-inventory`);
+  return response.data;
+};
+
+export const getInventoryByCategory = async (
+  categoryId: string,
+): Promise<InventoryListResponse> => {
+  const response = await api.get(BASE, { params: { categoryId } });
+  return response.data;
+};
+
+export const getCategories = async (): Promise<CategoryListResponse> => {
+  const response = await api.get(CATEGORY_BASE);
+  return response.data;
+};
+
+export const createCategory = async (
+  input: CategoryInput,
+): Promise<CategorySingleResponse> => {
+  const formData = new FormData();
+  formData.append("name", input.name);
+
+  if (input.image instanceof File) {
+    formData.append("image", input.image);
+  }
+
+  const response = await api.post(CATEGORY_BASE, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+};
+
+export const updateCategory = async ({
+  id,
+  input,
+}: {
+  id: string;
+  input: CategoryInput;
+}): Promise<CategorySingleResponse> => {
+  const formData = new FormData();
+  formData.append("name", input.name);
+
+  if (input.image instanceof File) {
+    formData.append("image", input.image);
+  }
+
+  const response = await api.put(`${CATEGORY_BASE}/${id}`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+};
+
+export const deleteCategory = async (id: string) => {
+  const response = await api.delete(`${CATEGORY_BASE}/${id}`);
   return response.data;
 };
 
