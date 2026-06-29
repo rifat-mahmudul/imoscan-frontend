@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { InvoicePDF } from "../../create-invoice/_components/createInvoice";
+import { InventoryItemsCard } from "../../_components/inventoryItemsCard";
 
 // --- Ultra-Modern PDF Styles (Premium Layout) ---
 export const pdfStyles = StyleSheet.create({
@@ -704,6 +705,7 @@ export default function DeliveryInvoice() {
           <div className="bg-card rounded-[28px] p-8 text-foreground flex flex-col justify-between shadow-lg">
             <div className="space-y-4">
               <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-sky-400">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={profileData?.data?.image?.url}
                   alt="Profile"
@@ -734,6 +736,8 @@ export default function DeliveryInvoice() {
             </div>
           </div>
         </div>
+
+        <InventoryItemsCard shopkeeperId={shopkeeper} />
 
         {/* Search Field */}
         <div>
@@ -810,6 +814,7 @@ export default function DeliveryInvoice() {
                       </td>
 
                       <td className="px-8 py-6 flex items-center gap-4">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={device.image}
                           className="w-12 h-12 rounded-2xl object-cover"

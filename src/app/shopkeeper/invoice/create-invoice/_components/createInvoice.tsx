@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { InventoryItemsCard } from "../../_components/inventoryItemsCard";
 
 // --- Ultra-Modern PDF Styles (Premium Layout) ---
 export const pdfStyles = StyleSheet.create({
@@ -287,6 +288,7 @@ export const InvoicePDF = ({
       {/* Brand Header */}
       <View style={pdfStyles.topSection}>
         {shopkeeper?.image?.url ? (
+          // eslint-disable-next-line jsx-a11y/alt-text
           <Image src={shopkeeper.image.url} style={pdfStyles.logo} />
         ) : (
           <Text
@@ -378,6 +380,7 @@ export const InvoicePDF = ({
         <View key={item.id} style={pdfStyles.tableRow}>
           <View style={pdfStyles.colProduct}>
             {item.image && (
+              // eslint-disable-next-line jsx-a11y/alt-text
               <Image src={item.image} style={pdfStyles.productImg} />
             )}
             <View>
@@ -897,6 +900,7 @@ export default function CreateInvoice() {
           <div className="bg-card rounded-[28px] p-8 text-foreground flex flex-col justify-between shadow-lg">
             <div className="space-y-4">
               <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-sky-400">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={profileData?.data?.image?.url}
                   alt="Profile"
@@ -927,6 +931,8 @@ export default function CreateInvoice() {
             </div>
           </div>
         </div>
+
+        <InventoryItemsCard shopkeeperId={shopkeeper} />
 
         {/* Search Field */}
         <div>
@@ -1003,6 +1009,7 @@ export default function CreateInvoice() {
                       </td>
 
                       <td className="px-8 py-6 flex items-center gap-4">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={device.image}
                           className="w-12 h-12 rounded-2xl object-cover"
